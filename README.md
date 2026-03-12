@@ -4,8 +4,8 @@ A command line interface for TickTick task management.
 
 ## Features
 
-- Smart views: today, tomorrow, next 7 days, and inbox across all projects
-- Create, update, complete, uncomplete, and delete tasks
+- Smart views: today, tomorrow, next 7 days, inbox, and all tasks across all projects
+- Create, update, move, complete, uncomplete, and delete tasks
 - Create, update, and delete projects
 - Set dates, priorities, tags, and content on tasks
 - Filter tasks by priority, tags, and due date
@@ -81,6 +81,7 @@ tickli task uncomplete <task-id>
 | `tickli tomorrow`    | Show tomorrow's tasks across all projects                |
 | `tickli week`        | Show tasks for the next 7 days across all projects       |
 | `tickli inbox`       | Show tasks in the inbox                                  |
+| `tickli all`         | Show all incomplete tasks across all projects             |
 
 Smart view flags:
 
@@ -100,6 +101,7 @@ Smart view flags:
 | `tickli task update`       |                     | Update a task                       |
 | `tickli task complete`     |                     | Complete a task                     |
 | `tickli task uncomplete`   |                     | Uncomplete a task                   |
+| `tickli task move`         |                     | Move a task to a different project  |
 | `tickli task delete`       | `rm`, `remove`      | Delete a task                       |
 
 Single-task commands (show, update, delete, complete, uncomplete) only need a task ID. The `--project`/`-P` flag is only needed for `list` and `create` (accepts ID or name).
@@ -120,6 +122,8 @@ Single-task commands (show, update, delete, complete, uncomplete) only need a ta
 | `--tag`           |       | list             | Filter by tag                                      |
 | `--all`           | `-a`  | list             | Include completed tasks                            |
 | `--verbose`       | `-v`  | list             | Show more details                                  |
+| `--move-to`       |       | update           | Move task to a different project (name or ID)      |
+| `--to`            |       | move             | Target project (name or ID)                        |
 | `--force`         | `-f`  | delete           | Skip confirmation prompt                           |
 | `--interactive`   | `-i`  | create, update   | Use interactive prompts                            |
 
@@ -199,7 +203,7 @@ Tickli stores its configuration at `~/.config/tickli/config.yaml` (following the
 | Key                     | Type   | Default     | Description                                      |
 | ----------------------- | ------ | ----------- | ------------------------------------------------ |
 | `default_project`       | string | `"inbox"`   | Default project used when no project is specified (ID or name) |
-| `default_project_color` | string | `"#000000"` | Default color for newly created projects         |
+| `default_project_color` | string | `""`        | Default color for newly created projects         |
 
 You can set the default project with `tickli project use`.
 
