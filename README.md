@@ -81,7 +81,7 @@ tickli task uncomplete <task-id>
 | `tickli task uncomplete`   |                     | Uncomplete a task                   |
 | `tickli task delete`       | `rm`, `remove`      | Delete a task                       |
 
-Single-task commands (show, update, delete, complete, uncomplete) only need a task ID. The `--project-id`/`-P` flag is only needed for `list` and `create`.
+Single-task commands (show, update, delete, complete, uncomplete) only need a task ID. The `--project`/`-P` flag is only needed for `list` and `create` (accepts ID or name).
 
 #### Task Flags
 
@@ -132,7 +132,7 @@ Single-task commands (show, update, delete, complete, uncomplete) only need a ta
 | `--quiet`         | `-q`  | Only print IDs (useful for piping)     |
 | `--output`        | `-o`  | Output format: `simple`, `json`        |
 | `--no-color`      |       | Disable color output                   |
-| `--project-id`    | `-P`  | Project context for task list and create |
+| `--project`       | `-P`  | Project context for task list and create (ID or name) |
 
 ### Scripting
 
@@ -140,7 +140,7 @@ Tickli is designed to work well in scripts and with other tools:
 
 ```bash
 # Create a task and capture its ID
-TASK_ID=$(tickli task create --title "Review PR" --project-id inbox --quiet)
+TASK_ID=$(tickli task create --title "Review PR" --project inbox --quiet)
 
 # Complete it
 tickli task complete "$TASK_ID"
@@ -152,7 +152,7 @@ tickli task list --quiet
 tickli task show <task-id> --json
 
 # Delete a task in one line
-tickli task delete $(tickli task create --title "temp" --project-id inbox --quiet) --force
+tickli task delete $(tickli task create --title "temp" --project inbox --quiet) --force
 ```
 
 ### Exit Codes
@@ -171,8 +171,8 @@ Tickli stores its configuration at `~/.config/tickli/config.yaml` (following the
 
 | Key                     | Type   | Default     | Description                                      |
 | ----------------------- | ------ | ----------- | ------------------------------------------------ |
-| `default_project_id`    | string | `""`        | Default project ID used when no project is specified |
-| `default_project_color` | string | `"#FF1111"` | Default color for newly created projects         |
+| `default_project`       | string | `"inbox"`   | Default project used when no project is specified (ID or name) |
+| `default_project_color` | string | `"#000000"` | Default color for newly created projects         |
 
 You can set the default project with `tickli project use`.
 

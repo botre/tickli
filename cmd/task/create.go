@@ -55,8 +55,8 @@ and tags. At minimum, a title is required unless using interactive mode.`,
   # Create a task with priority and due date
   tickli task create -t "Submit report" -p high --due "tomorrow 5pm"
   
-  # Create a task in a specific project
-  tickli task create -t "Call client" --project-id abc123def456
+  # Create a task in a specific project (by ID or name)
+  tickli task create -t "Call client" --project Work
   
   # Create a task with content and tags
   tickli task create -t "Team meeting" -c "Discuss Q3 roadmap" --tags meeting,work
@@ -69,12 +69,14 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if opts.projectID == "" {
-				return fmt.Errorf("no project selected. Use -P <project-id> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
+				return fmt.Errorf("no project selected. Use -P <project> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
 			}
 
-			if _, err := client.GetProject(opts.projectID); err != nil {
-				return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects", opts.projectID)
+			resolvedProject, err := client.ResolveProject(opts.projectID)
+			if err != nil {
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
 			}
+			opts.projectID = resolvedProject.ID
 
 			if opts.interactive {
 				opts.title = prompt.String("Title", opts.title)
@@ -143,7 +145,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				t.IsAllDay = opts.allDay
 			}
 
-			t, err := client.CreateTask(t)
+			t, err = client.CreateTask(t)
 			if err != nil {
 				return errors.Wrap(err, "failed to create task")
 			}

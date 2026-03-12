@@ -27,7 +27,7 @@ type updateProjectOptions struct {
 func newUpdateProjectCommand(client *api.Client) *cobra.Command {
 	opts := &updateProjectOptions{}
 	cmd := &cobra.Command{
-		Use:   "update <project-id>",
+		Use:   "update <project>",
 		Short: "Update a project",
 		Long: `Modify the properties of an existing project.
     

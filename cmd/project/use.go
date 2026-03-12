@@ -49,13 +49,14 @@ func newUseProjectCmd(client *api.Client) *cobra.Command {
 		Short: "Set the active project",
 		Long: `Switch the active project context for subsequent commands.
 
-Without arguments, opens an interactive selector. With a project ID argument,
+Without arguments, opens an interactive selector. With a project argument,
 switches directly. The selected project becomes the default for future commands.`,
 		Example: `  # Interactive project selection
   tickli project use
 
-  # Switch by project ID
-  tickli project use abc123def456`,
+  # Switch by project ID or name
+  tickli project use abc123def456
+  tickli project use "My Project"`,
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completion.ProjectIDs(),
 		PreRun: func(cmd *cobra.Command, args []string) {
@@ -90,7 +91,7 @@ switches directly. The selected project becomes the default for future commands.
 				return errors.Wrap(err, "could not load config")
 			}
 
-			cfg.DefaultProjectID = selectedProject.ID
+			cfg.DefaultProject = selectedProject.ID
 			if err := config.Save(cfg); err != nil {
 				return errors.Wrap(err, "failed to save config")
 			}

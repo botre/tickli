@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	DefaultProjectID    string `mapstructure:"default_project_id"`
+	DefaultProject      string `mapstructure:"default_project"`
 	DefaultProjectColor string `mapstructure:"default_project_color"`
 }
 
@@ -27,8 +27,8 @@ func InitConfig() error {
 		return errors.Wrap(err, "creating config directory")
 	}
 
-	viper.SetDefault("default_project_id", "")
-	viper.SetDefault("default_project_color", "#FF1111")
+	viper.SetDefault("default_project", "inbox")
+	viper.SetDefault("default_project_color", "#000000")
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		if err := viper.SafeWriteConfigAs(configPath); err != nil {
@@ -57,7 +57,7 @@ func Load() (*Config, error) {
 }
 
 func Save(cfg *Config) error {
-	viper.Set("default_project_id", cfg.DefaultProjectID)
+	viper.Set("default_project", cfg.DefaultProject)
 	viper.Set("default_project_color", cfg.DefaultProjectColor)
 	return viper.WriteConfigAs(configPath)
 }
