@@ -14,9 +14,8 @@ import (
 )
 
 type showOptions struct {
-	projectID string
-	taskID    string
-	output    types.OutputFormat
+	taskID string
+	output types.OutputFormat
 }
 
 func newShowCommand(client *api.Client) *cobra.Command {
@@ -33,26 +32,22 @@ Displays title, content, dates, priority, tags, and other properties.
 You can choose between human-readable output or machine-readable JSON.`,
 		Example: `  # Show task details in human-readable format
   tickli task show abc123def456
-  
-  # Show task from specific project
-  tickli task show abc123def456 -i xyz789
-  
+
   # Show task details in JSON format
   tickli task show abc123def456 -o json`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.TaskIDs(projectID),
 		PreRun: func(cmd *cobra.Command, args []string) {
-			opts.projectID = projectID
 			opts.taskID = args[0]
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			task, err := client.GetTask(opts.projectID, opts.taskID)
+			task, err := client.GetTask(opts.taskID)
 			if err != nil {
 				return err
 			}
 			if task.ID != opts.taskID {
-				log.Warn().Str("task-id", opts.taskID).Str("project-id", opts.projectID).Msg("task not found")
-				return fmt.Errorf("task %s not found for porject %s", opts.taskID, opts.projectID)
+				log.Warn().Str("task-id", opts.taskID).Msg("task not found")
+				return fmt.Errorf("task %s not found", opts.taskID)
 			}
 			switch opts.output {
 			case types.OutputSimple:

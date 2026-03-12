@@ -13,10 +13,9 @@ import (
 )
 
 type deleteOptions struct {
-	projectID string
-	taskID    string
-	force     bool
-	output    types.OutputFormat
+	taskID string
+	force  bool
+	output types.OutputFormat
 }
 
 func newDeleteCommand(client *api.Client) *cobra.Command {
@@ -33,14 +32,10 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
   tickli task delete abc123def456
 
   # Force delete without confirmation
-  tickli task delete abc123def456 --force
-
-  # Delete from specific project
-  tickli task delete abc123def456 --project-id xyz789`,
+  tickli task delete abc123def456 --force`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.TaskIDs(projectID),
 		PreRun: func(cmd *cobra.Command, args []string) {
-			opts.projectID = projectID
 			opts.taskID = args[0]
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -54,7 +49,7 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 				}
 			}
 
-			err := client.DeleteTask(opts.projectID, opts.taskID)
+			err := client.DeleteTask(opts.taskID)
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to delete task %s", opts.taskID))
 			}

@@ -76,7 +76,9 @@ tickli task complete <task-id>
 | `tickli task complete` |                     | Mark a task as done                  |
 | `tickli task delete`   | `rm`, `remove`      | Delete a task                        |
 
-Common flags: `-t` title, `-c` content, `-p` priority (none/low/medium/high), `--date`/`--start`/`--due` for dates, `--tags`, `--repeat`, `-P` project ID override.
+Single-task commands (show, update, delete, complete) work with just a task ID. The `-P` flag is only needed for `list` and `create`.
+
+Common flags: `-t` title, `-c` content, `-p` priority (none/low/medium/high), `--date`/`--start`/`--due` for dates, `--tags`, `-o json` for machine-readable output, `-i` for interactive mode.
 
 ### Projects
 
@@ -108,7 +110,7 @@ You can set the default project interactively with `tickli project use`.
 | `~/.config/tickli/credentials` | TickTick Client ID and Client Secret |
 | `~/.local/share/tickli/token` | OAuth access token |
 
-To log out, run `tickli reset` — this removes the access token and re-runs authentication.
+To log out, run `tickli reset`. This removes the access token and re-runs authentication.
 
 ## Documentation
 

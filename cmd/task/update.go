@@ -18,8 +18,7 @@ import (
 )
 
 type updateOptions struct {
-	projectID string
-	taskID    string
+	taskID string
 
 	title       string
 	content     string
@@ -67,11 +66,10 @@ This command allows modifying title, content, priority, dates, and more.`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.TaskIDs(projectID),
 		PreRun: func(cmd *cobra.Command, args []string) {
-			opts.projectID = projectID
 			opts.taskID = args[0]
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := client.GetTask(opts.projectID, opts.taskID)
+			t, err := client.GetTask(opts.taskID)
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to get task with ID %s", opts.taskID))
 			}

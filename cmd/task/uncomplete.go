@@ -8,8 +8,7 @@ import (
 )
 
 type uncompleteOptions struct {
-	projectID string
-	taskID    string
+	taskID string
 }
 
 func newUncompleteCommand(client *api.Client) *cobra.Command {
@@ -22,14 +21,10 @@ func newUncompleteCommand(client *api.Client) *cobra.Command {
 This command can be used to reactivate tasks that were previously completed
 but need to be worked on again.`,
 		Example: `  # Reactivate a completed task
-  tickli task uncomplete abc123def456
-  
-  # Reactivate a task in a specific project
-  tickli task uncomplete abc123def456 --project-id xyz789`,
+  tickli task uncomplete abc123def456`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.TaskIDs(projectID),
 		PreRun: func(cmd *cobra.Command, args []string) {
-			opts.projectID = projectID
 			opts.taskID = args[0]
 		},
 		Run: func(cmd *cobra.Command, args []string) {
