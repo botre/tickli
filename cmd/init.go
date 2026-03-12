@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/adrg/xdg"
 	"github.com/joho/godotenv"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
-	"net/http"
-	"os"
-
 	"github.com/rs/zerolog/log"
 	"github.com/sho0pi/tickli/internal/api"
 	"github.com/sho0pi/tickli/internal/config"
@@ -73,11 +75,15 @@ This will open your browser for authentication and store the access token secure
 }
 
 func initTickli() (string, error) {
-	if err := godotenv.Load(); err == nil {
-		log.Info().Msg("Loading TickTick credentials from .env")
-
-		clientID = os.Getenv("TICKTICK_CLIENT_ID")
-		clientSecret = os.Getenv("TICKTICK_CLIENT_SECRET")
+	envPath := filepath.Join(xdg.ConfigHome, "tickli", ".env")
+	if err := godotenv.Load(envPath); err == nil {
+		log.Info().Msgf("Loading TickTick credentials from %s", envPath)
+	}
+	if id := os.Getenv("TICKTICK_CLIENT_ID"); id != "" {
+		clientID = id
+	}
+	if secret := os.Getenv("TICKTICK_CLIENT_SECRET"); secret != "" {
+		clientSecret = secret
 	}
 
 	// Verify credentials are available
