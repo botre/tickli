@@ -2,8 +2,6 @@
 
 > A modern command line interface for TickTick task management
 
-![Tickli Demo](assets/tickli-demo.gif)
-
 ## What is Tickli?
 
 Tickli is a powerful CLI tool that lets you manage your TickTick tasks and projects directly from your terminal. Stay productive without leaving your command line!
