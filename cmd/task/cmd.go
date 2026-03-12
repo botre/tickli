@@ -22,7 +22,7 @@ func NewTaskCommand() *cobra.Command {
 		Long: `Create, view, update, and manage tasks in your TickTick projects.
 
 Single-task commands (show, update, delete, complete, uncomplete) work with just a task ID.
-The --project-id flag is only needed for list and create.`,
+The --project flag is only needed for list and create.`,
 		Example: `  # List all tasks in current project
   tickli task list
   
@@ -38,7 +38,7 @@ The --project-id flag is only needed for list and create.`,
 				if err != nil {
 					return errors.Wrap(err, "failed to load config")
 				}
-				projectID = cfg.DefaultProjectID
+				projectID = cfg.DefaultProject
 			}
 			return nil
 		},
@@ -66,7 +66,7 @@ func resolveOutput(cmd *cobra.Command, output types.OutputFormat) types.OutputFo
 }
 
 func RegisterProjectOverride(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&projectID, "project-id", "P", "", "Project context for list and create commands")
+	cmd.PersistentFlags().StringVarP(&projectID, "project", "P", "", "Project context for list and create commands (ID or name)")
 
-	_ = cmd.RegisterFlagCompletionFunc("project-id", completion.ProjectIDs())
+	_ = cmd.RegisterFlagCompletionFunc("project", completion.ProjectIDs())
 }

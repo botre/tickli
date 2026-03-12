@@ -24,12 +24,12 @@ func newShowCommand(client *api.Client) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:     "show [project-id]",
+		Use:     "show [project]",
 		Aliases: []string{"info", "get"},
 		Short:   "Show a project",
 		Long: `Display detailed information about a specific project.
-    
-If no project ID is provided, shows the currently active project.
+
+If no project is specified, shows the currently active project.
 Can include associated tasks and switch between output formats.`,
 		Example: `  # Show current project
   tickli project show
@@ -52,7 +52,7 @@ Can include associated tasks and switch between output formats.`,
 				if err != nil {
 					return errors.Wrap(err, "failed to load config")
 				}
-				opts.projectID = cfg.DefaultProjectID
+				opts.projectID = cfg.DefaultProject
 			}
 			return nil
 		},

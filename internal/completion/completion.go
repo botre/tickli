@@ -46,7 +46,7 @@ func TaskIDs(projectID string) cobra.CompletionFunc {
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
-			projectID = cfg.DefaultProjectID
+			projectID = cfg.DefaultProject
 		}
 
 		tasks, err := client.ListTasks(projectID)

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var DefaultColor = Color(color.HEX("#3694FE"))
+var DefaultColor = Color(color.HEX("#000000"))
 
 type Color color.RGBColor
 

@@ -21,7 +21,7 @@ type deleteOptions struct {
 func newDeleteCommand(client *api.Client) *cobra.Command {
 	opts := deleteOptions{}
 	cmd := &cobra.Command{
-		Use:   "delete <project-id>",
+		Use:   "delete <project>",
 		Short: "Delete a project",
 		Long: `Permanently delete a project by its ID.
 
