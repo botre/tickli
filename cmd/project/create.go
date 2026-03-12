@@ -1,14 +1,15 @@
 package project
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -18,6 +19,7 @@ type createProjectOptions struct {
 	viewMode    project.ViewMode
 	kind        project.Kind
 	interactive bool
+	output      types.OutputFormat
 }
 
 func newCreateProjectCommand(client *api.Client) *cobra.Command {
@@ -80,8 +82,16 @@ supports both direct parameter input and interactive mode.`,
 				return errors.Wrap(err, fmt.Sprintf("failed to create project %s", p.Name))
 			}
 
-			fmt.Println(utils.GetProjectDescription(*p))
-			fmt.Println(p.ID)
+			if opts.output == types.OutputJSON {
+				jsonData, err := json.MarshalIndent(p, "", "  ")
+				if err != nil {
+					return errors.Wrap(err, "failed to marshal output")
+				}
+				fmt.Println(string(jsonData))
+			} else {
+				fmt.Println(utils.GetProjectDescription(*p))
+				fmt.Println(p.ID)
+			}
 			return nil
 		},
 	}
@@ -93,6 +103,8 @@ supports both direct parameter input and interactive mode.`,
 	cmd.Flags().Var(&opts.kind, "kind", "Project type: TASK for action items or NOTE for information (default: TASK)")
 	_ = cmd.RegisterFlagCompletionFunc("kind", project.KindCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Create project by answering prompts instead of using flags")
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
+	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 	cmd.MarkFlagsOneRequired("name", "interactive")
 
 	return cmd

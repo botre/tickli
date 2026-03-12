@@ -29,6 +29,7 @@ func ColorDisabled() bool {
 	return false
 }
 
+
 func NewTickliCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tickli",

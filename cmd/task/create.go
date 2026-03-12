@@ -1,16 +1,17 @@
 package task
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +37,7 @@ type createOptions struct {
 	interactive bool
 
 	projectID string
+	output    types.OutputFormat
 }
 
 func newCreateCommand(client *api.Client) *cobra.Command {
@@ -141,7 +143,15 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				return errors.Wrap(err, "failed to create task")
 			}
 
-			fmt.Printf("Created task %s\n", t.ID)
+			if opts.output == types.OutputJSON {
+				jsonData, err := json.MarshalIndent(t, "", "  ")
+				if err != nil {
+					return errors.Wrap(err, "failed to marshal output")
+				}
+				fmt.Println(string(jsonData))
+			} else {
+				fmt.Printf("Created task %s\n", t.ID)
+			}
 			return nil
 		},
 	}
@@ -166,6 +176,8 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high (default: none)")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Create task by answering prompts")
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
+	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 	cmd.MarkFlagsOneRequired("title", "interactive")
 
 	return cmd
