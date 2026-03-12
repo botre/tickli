@@ -95,6 +95,11 @@ func initTickli() (string, error) {
 	}
 
 	// Prompt for missing credentials
+	if clientID == "" || clientSecret == "" {
+		fmt.Println("Create a TickTick app at https://developer.ticktick.com/manage")
+		fmt.Println("Set the OAuth redirect URL to: http://localhost:8080")
+		fmt.Println()
+	}
 	reader := bufio.NewReader(os.Stdin)
 	if clientID == "" {
 		fmt.Print("Enter TickTick Client ID: ")

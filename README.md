@@ -38,8 +38,17 @@ You can also download prebuilt binaries from the [GitHub releases page](https://
 
 ## Quick Start
 
+### 1. Create a TickTick App
+
+1. Go to the [TickTick Developer Portal](https://developer.ticktick.com/manage)
+2. Create a new app
+3. Set the **OAuth redirect URL** to `http://localhost:8080`
+4. Note your **Client ID** and **Client Secret**
+
+### 2. Authenticate
+
 ```bash
-# Initialize and authenticate with TickTick
+# Initialize and authenticate with TickTick (you will be prompted for your Client ID and Secret)
 tickli init
 
 # List available projects
