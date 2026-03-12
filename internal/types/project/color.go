@@ -9,12 +9,13 @@ import (
 	"strings"
 )
 
-var DefaultColor = Color(color.HEX("#000000"))
+// DefaultColor is a zero-value sentinel meaning "no project color set".
+// Sprint on this value returns unstyled text.
+var DefaultColor Color
 
 type Color color.RGBColor
 
 var ColorCompletion = []cobra.Completion{
-	cobra.CompletionWithDesc(DefaultColor.String(), "🎨Default color"),
 	cobra.CompletionWithDesc("#EC6665", "❤️Red"),
 	cobra.CompletionWithDesc("#F2B04A", "🧡Orange"),
 	cobra.CompletionWithDesc("#FFD866", "💛Yellow"),
@@ -35,7 +36,7 @@ func (c *Color) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if colorStr == "" {
+	if colorStr == "" || colorStr == "#000000" {
 		*c = DefaultColor
 	} else {
 		*c = Color(color.HEX(colorStr))
@@ -47,11 +48,21 @@ func (c Color) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.String())
 }
 
+func (c Color) isZero() bool {
+	return c[0] == 0 && c[1] == 0 && c[2] == 0 && c[3] == 0
+}
+
 func (c Color) Sprint(a ...any) string {
+	if c.isZero() {
+		return fmt.Sprint(a...)
+	}
 	return color.RGBColor(c).Sprint(a...)
 }
 
 func (c Color) String() string {
+	if c.isZero() {
+		return ""
+	}
 	return "#" + strings.ToUpper(color.RGBColor(c).Hex())
 }
 

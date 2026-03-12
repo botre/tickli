@@ -52,6 +52,7 @@ The --project flag is only needed for list and create.`,
 		newListCommand(&client),
 		newUncompleteCommand(&client),
 		newUpdateCommand(&client),
+		newMoveCommand(&client),
 	)
 
 	RegisterProjectOverride(cmd)
