@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/adrg/xdg"
 	"github.com/joho/godotenv"
@@ -90,9 +92,36 @@ func initTickli() (string, error) {
 		clientSecret = secret
 	}
 
-	// Verify credentials are available
+	// Prompt for missing credentials
+	reader := bufio.NewReader(os.Stdin)
+	if clientID == "" {
+		fmt.Print("Enter TickTick Client ID: ")
+		input, _ := reader.ReadString('\n')
+		clientID = strings.TrimSpace(input)
+	}
+	if clientSecret == "" {
+		fmt.Print("Enter TickTick Client Secret: ")
+		input, _ := reader.ReadString('\n')
+		clientSecret = strings.TrimSpace(input)
+	}
+
 	if clientID == "" || clientSecret == "" {
-		return "", fmt.Errorf("missing TickTick credentials. Please provide them via environment variables or build flags")
+		return "", fmt.Errorf("client ID and client secret are required")
+	}
+
+	// Save credentials for future use
+	configDir := filepath.Dir(credentialsPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		log.Warn().Err(err).Msg("Failed to create config directory")
+	} else if err := os.WriteFile(credentialsPath, []byte(fmt.Sprintf("TICKTICK_CLIENT_ID=%s\nTICKTICK_CLIENT_SECRET=%s\n", clientID, clientSecret)), 0600); err != nil {
+		log.Warn().Err(err).Msg("Failed to save credentials")
+	} else {
+		log.Info().Msgf("Credentials saved to %s", credentialsPath)
+		// Ensure credentials are not accidentally committed
+		gitignorePath := filepath.Join(configDir, ".gitignore")
+		if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
+			_ = os.WriteFile(gitignorePath, []byte("credentials\n"), 0644)
+		}
 	}
 
 	// Start OAuth flow
