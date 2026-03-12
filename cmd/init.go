@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"github.com/sho0pi/tickli/internal/api"
-	"github.com/sho0pi/tickli/internal/config"
+	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/config"
 	"github.com/spf13/cobra"
 )
 

@@ -23,9 +23,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-        -X 'github.com/sho0pi/tickli/cmd.clientID={{ .Env.CLIENT_ID }}'
-        -X 'github.com/sho0pi/tickli/cmd.clientSecret={{ .Env.CLIENT_SECRET }}'
-        -X 'github.com/sho0pi/tickli/cmd.Version={{ .Version }}'
+        -X 'github.com/botre/tickli/cmd.clientID={{ .Env.CLIENT_ID }}'
+        -X 'github.com/botre/tickli/cmd.clientSecret={{ .Env.CLIENT_SECRET }}'
+        -X 'github.com/botre/tickli/cmd.Version={{ .Version }}'
 
 archives:
   - formats:
@@ -57,7 +57,7 @@ brews:
     repository:
       owner: sho0pi
       name: homebrew-tap
-    homepage: https://github.com/sho0pi/tickli
+    homepage: https://github.com/botre/tickli
     description: A simple CLI for managing your tasks.
     commit_author:
       name: "sho0pi"
@@ -75,5 +75,5 @@ scoops:
     repository:
       owner: sho0pi
       name: scoop-bucket
-    homepage: https://github.com/sho0pi/tickli
+    homepage: https://github.com/botre/tickli
     description: A simple CLI for managing your tasks.

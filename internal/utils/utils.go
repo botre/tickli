@@ -3,8 +3,8 @@ package utils
 import (
 	"fmt"
 	"github.com/ktr0731/go-fuzzyfinder"
-	"github.com/sho0pi/tickli/internal/types"
-	"github.com/sho0pi/tickli/internal/types/project"
+	"github.com/botre/tickli/internal/types"
+	"github.com/botre/tickli/internal/types/project"
 )
 
 func GetProjectDescription(project types.Project) string {

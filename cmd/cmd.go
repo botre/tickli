@@ -7,9 +7,9 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/sho0pi/tickli/cmd/project"
-	"github.com/sho0pi/tickli/cmd/subtask"
-	"github.com/sho0pi/tickli/cmd/task"
+	"github.com/botre/tickli/cmd/project"
+	"github.com/botre/tickli/cmd/subtask"
+	"github.com/botre/tickli/cmd/task"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -34,7 +34,7 @@ func NewTickliCommand() *cobra.Command {
 		Use:   "tickli",
 		Short: "TickTick CLI - A modern command line interface for TickTick",
 		Long: `tickli is a CLI tool that helps you manage your TickTick tasks from the command line.
-Complete documentation is available at https://github.com/sho0pi/tickli`,
+Complete documentation is available at https://github.com/botre/tickli`,
 		SilenceErrors: true,
 		SilenceUsage:  false,
 	}

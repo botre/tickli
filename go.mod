@@ -1,4 +1,4 @@
-module github.com/sho0pi/tickli
+module github.com/botre/tickli
 
 go 1.24.1
 

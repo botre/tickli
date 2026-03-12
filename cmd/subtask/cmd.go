@@ -2,8 +2,8 @@ package subtask
 
 import (
 	"github.com/rs/zerolog/log"
-	"github.com/sho0pi/tickli/internal/api"
-	"github.com/sho0pi/tickli/internal/utils"
+	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
 )
 
