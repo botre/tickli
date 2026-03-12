@@ -110,12 +110,18 @@ func initTickli() (string, error) {
 	}
 
 	// Save credentials for future use
-	if err := os.MkdirAll(filepath.Dir(credentialsPath), 0755); err != nil {
+	configDir := filepath.Dir(credentialsPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
 		log.Warn().Err(err).Msg("Failed to create config directory")
 	} else if err := os.WriteFile(credentialsPath, []byte(fmt.Sprintf("TICKTICK_CLIENT_ID=%s\nTICKTICK_CLIENT_SECRET=%s\n", clientID, clientSecret)), 0600); err != nil {
 		log.Warn().Err(err).Msg("Failed to save credentials")
 	} else {
 		log.Info().Msgf("Credentials saved to %s", credentialsPath)
+		// Ensure credentials are not accidentally committed
+		gitignorePath := filepath.Join(configDir, ".gitignore")
+		if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
+			_ = os.WriteFile(gitignorePath, []byte("credentials\n"), 0644)
+		}
 	}
 
 	// Start OAuth flow
