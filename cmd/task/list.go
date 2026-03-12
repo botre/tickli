@@ -2,7 +2,9 @@ package task
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/sho0pi/tickli/internal/api"
 	"github.com/sho0pi/tickli/internal/types"
@@ -20,6 +22,7 @@ type listOptions struct {
 	dueDate   string
 	tag       string
 	projectID string
+	output    types.OutputFormat
 }
 
 func fetchProjectColor(client *api.Client, projectID string) project.Color {
@@ -170,6 +173,15 @@ tags, and due date. Results are displayed in an interactive selector.`,
 				}
 			}
 
+			if opts.output == types.OutputJSON {
+				jsonData, err := json.MarshalIndent(filteredTasks, "", "  ")
+				if err != nil {
+					return errors.Wrap(err, "failed to marshal output")
+				}
+				fmt.Println(string(jsonData))
+				return nil
+			}
+
 			t, err := utils.FuzzySelectTask(filteredTasks, projectColor, "")
 			if err != nil {
 				log.Fatal().Err(err).Msg("failed to select task")
@@ -185,6 +197,8 @@ tags, and due date. Results are displayed in an interactive selector.`,
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Filter by due date (today, tomorrow, this-week, overdue)")
 	cmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", false, "Show more details for each task in the list")
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
+	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 
 	return cmd
 }

@@ -1,17 +1,20 @@
 package project
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/sho0pi/tickli/internal/api"
 	"github.com/sho0pi/tickli/internal/types"
 	"github.com/sho0pi/tickli/internal/utils"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 type listOptions struct {
 	filter string
+	output types.OutputFormat
 }
 
 func filterProjectByName(projects []types.Project, name string) ([]types.Project, error) {
@@ -54,6 +57,15 @@ then displays a fuzzy-search selector to choose a project.`,
 				return err
 			}
 
+			if opts.output == types.OutputJSON {
+				jsonData, err := json.MarshalIndent(projects, "", "  ")
+				if err != nil {
+					return errors.Wrap(err, "failed to marshal output")
+				}
+				fmt.Println(string(jsonData))
+				return nil
+			}
+
 			project, err := utils.FuzzySelectProject(projects, "")
 			if err != nil {
 				return errors.Wrap(err, "failed to select project")
@@ -65,6 +77,8 @@ then displays a fuzzy-search selector to choose a project.`,
 	}
 
 	cmd.Flags().StringVarP(&opts.filter, "filter", "f", "", "Only show projects with names containing the provided text")
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
+	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 
 	return cmd
 }
