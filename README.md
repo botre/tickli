@@ -55,17 +55,39 @@ tickli task list
 tickli task complete <task-id>
 ```
 
-## Key Commands
+## Commands
 
-| Command                | Description                         |
-| ---------------------- | ----------------------------------- |
-| `tickli init`          | Set up authentication with TickTick |
-| `tickli project list`  | Show all your projects              |
-| `tickli project use`   | Switch active project context       |
-| `tickli add`           | Quickly add a new task              |
-| `tickli task list`     | List tasks in current project       |
-| `tickli task show`     | View task details                   |
-| `tickli task complete` | Mark a task as complete             |
+### General
+
+| Command           | Description                              |
+| ----------------- | ---------------------------------------- |
+| `tickli init`     | Authenticate with TickTick via OAuth     |
+| `tickli reset`    | Reset authentication (use `--force` to skip confirmation) |
+| `tickli version`  | Show the current version                 |
+
+### Tasks
+
+| Command                | Aliases             | Description                          |
+| ---------------------- | ------------------- | ------------------------------------ |
+| `tickli task create`   | `add`, `a`          | Create a new task                    |
+| `tickli task list`     | `ls`                | List and browse tasks interactively  |
+| `tickli task show`     | `info`, `get`       | View task details                    |
+| `tickli task update`   |                     | Modify a task's properties           |
+| `tickli task complete` |                     | Mark a task as done                  |
+| `tickli task delete`   | `rm`, `remove`      | Delete a task                        |
+
+Common flags: `-t` title, `-c` content, `-p` priority (none/low/medium/high), `--date`/`--start`/`--due` for dates, `--tags`, `--repeat`, `-P` project ID override.
+
+### Projects
+
+| Command                  | Aliases       | Description                     |
+| ------------------------ | ------------- | ------------------------------- |
+| `tickli project list`    | `ls`          | List and browse projects        |
+| `tickli project show`    | `info`, `get` | View project details            |
+| `tickli project create`  |               | Create a new project            |
+| `tickli project use`     |               | Switch active project context   |
+| `tickli project update`  |               | Modify a project's properties   |
+| `tickli project delete`  | `rm`          | Delete a project                |
 
 ## Interactive TUI Experience (Coming Soon!)
 
