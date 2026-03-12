@@ -43,9 +43,9 @@ This command shows all projects matching the optional filter criteria,
 then displays a fuzzy-search selector to choose a project.`,
 		Example: `  # List all projects
   tickli project list
-  
+
   # Filter projects by name
-  tickli project list -f "work"`,
+  tickli project list --filter "work"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			projects, err := client.ListProjects()
 			if err != nil {

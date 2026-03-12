@@ -128,7 +128,7 @@ func filterTasks(tasks []types.Task, opts *listOptions) []types.Task {
 			case "overdue":
 				return due.Before(now)
 			default:
-				return true
+				return false
 			}
 		})
 	}
@@ -165,6 +165,13 @@ tags, and due date. Results are displayed in an interactive selector.`,
 			opts.projectID = projectID
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if opts.dueDate != "" {
+				switch opts.dueDate {
+				case "today", "tomorrow", "this-week", "overdue":
+				default:
+					return fmt.Errorf("invalid --due value %q: must be one of today, tomorrow, this-week, overdue", opts.dueDate)
+				}
+			}
 			if opts.projectID == "" {
 				return fmt.Errorf("no project selected. Use -P <project-id> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
 			}
@@ -205,6 +212,9 @@ tags, and due date. Results are displayed in an interactive selector.`,
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
+				if filteredTasks == nil {
+					filteredTasks = []types.Task{}
+				}
 				jsonData, err := json.MarshalIndent(filteredTasks, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")

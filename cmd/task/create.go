@@ -179,7 +179,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.Flags().StringSliceVar(&opts.reminders, "reminders", []string{}, "List of reminder triggers (e.g., '9h', '0s')")
 	cmd.Flags().StringSliceVar(&opts.tags, "tags", []string{}, "Apply tags to categorize the task (comma-separated)")
 	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "Recurring rule (e.g., 'daily', 'weekly on monday')")
-	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high (default: none)")
+	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Create task by answering prompts")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")

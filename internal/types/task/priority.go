@@ -58,7 +58,8 @@ func (p Priority) MarshalJSON() ([]byte, error) {
 	return json.Marshal(int(p))
 }
 
-func (p Priority) String() string {
+// ColorString returns the priority flag with ANSI color for display
+func (p Priority) ColorString() string {
 	flag := "⚑"
 	switch p {
 	case PriorityNone:
@@ -72,6 +73,22 @@ func (p Priority) String() string {
 	}
 
 	return flag
+}
+
+// String returns a plain text label (used by cobra for help/defaults)
+func (p Priority) String() string {
+	switch p {
+	case PriorityNone:
+		return "none"
+	case PriorityLow:
+		return "low"
+	case PriorityMedium:
+		return "medium"
+	case PriorityHigh:
+		return "high"
+	default:
+		return "none"
+	}
 }
 
 func (p *Priority) Set(value string) error {

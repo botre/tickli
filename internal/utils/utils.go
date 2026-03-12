@@ -2,6 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/ktr0731/go-fuzzyfinder"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
@@ -39,38 +41,46 @@ Tasks:`,
 	return description
 }
 
+func formatTickTickTime(t types.TickTickTime) string {
+	if time.Time(t).IsZero() {
+		return ""
+	}
+	return t.Humanize()
+}
+
 func GetTaskDescription(task types.Task, projectColor project.Color) string {
 	projectLine := projectColor.Sprint("----------------------")
 
-	description := fmt.Sprintf(`
+	lines := fmt.Sprintf(`
 Task Details:
 
 %s %s
-%s
-Desc: %s 
-Content: %s
-Priority: %s
-Group: %s
-
-Time: 
-StartDate: %s
-DueDate: %s
-CompletedTime: %s
-
-Tasks:`,
-		task.Status,
+%s`,
+		task.Status.ColorString(),
 		projectLine,
 		task.Title,
-		task.Desc,
-		task.Content,
-		task.Priority.String(),
-		task.ProjectID,
-		task.StartDate.Humanize(),
-		task.DueDate,
-		task.CompletedTime.String(),
 	)
 
-	return description
+	if task.Content != "" {
+		lines += fmt.Sprintf("\nContent: %s", task.Content)
+	}
+	lines += fmt.Sprintf("\nPriority: %s", task.Priority.ColorString())
+	lines += fmt.Sprintf("\nProject: %s", task.ProjectID)
+
+	if s := formatTickTickTime(task.StartDate); s != "" {
+		lines += fmt.Sprintf("\nStart: %s", s)
+	}
+	if s := formatTickTickTime(task.DueDate); s != "" {
+		lines += fmt.Sprintf("\nDue: %s", s)
+	}
+	if s := formatTickTickTime(task.CompletedTime); s != "" {
+		lines += fmt.Sprintf("\nCompleted: %s", s)
+	}
+	if len(task.Tags) > 0 {
+		lines += fmt.Sprintf("\nTags: %v", task.Tags)
+	}
+
+	return lines
 }
 
 func FuzzySelectProject(projects []types.Project, query string) (types.Project, error) {

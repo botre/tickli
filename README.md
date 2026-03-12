@@ -128,7 +128,7 @@ Single-task commands (show, update, delete, complete, uncomplete) only need a ta
 
 | Flag              | Short | Description                            |
 | ----------------- | ----- | -------------------------------------- |
-| `--json`          |       | Output in JSON format (shorthand for `--output json`) |
+| `--json`          |       | Output in JSON format                  |
 | `--quiet`         | `-q`  | Only print IDs (useful for piping)     |
 | `--output`        | `-o`  | Output format: `simple`, `json`        |
 | `--no-color`      |       | Disable color output                   |

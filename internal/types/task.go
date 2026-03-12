@@ -9,7 +9,7 @@ type Task struct {
 	IsAllDay      bool            `json:"isAllDay"`
 	CompletedTime TickTickTime    `json:"completedTime,omitzero"`
 	Content       string          `json:"content"`
-	Desc          string          `json:"desc"`
+	Desc          string          `json:"desc,omitempty"`
 	DueDate       TickTickTime    `json:"dueDate,omitzero"`
 	Items         []ChecklistItem `json:"items"`
 	Priority      task.Priority   `json:"priority"`

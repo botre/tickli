@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gookit/color"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/cmd/project"
@@ -52,7 +53,7 @@ Complete documentation is available at https://github.com/botre/tickli`,
 		SilenceUsage:  false,
 	}
 	cmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
-	cmd.PersistentFlags().BoolVar(&JSONOutput, "json", false, "Shorthand for --output json")
+	cmd.PersistentFlags().BoolVar(&JSONOutput, "json", false, "Output in JSON format")
 	cmd.PersistentFlags().BoolVarP(&QuietOutput, "quiet", "q", false, "Only print IDs")
 	cmd.AddCommand(
 		NewInitCommand(),
@@ -70,6 +71,10 @@ func Execute() {
 
 	// Parse flags early so --no-color is available before PersistentPreRun
 	cmd.ParseFlags(os.Args[1:])
+
+	if ColorDisabled() {
+		color.Disable()
+	}
 
 	zerolog.TimeFieldFormat = time.RFC3339
 	log.Logger = log.Output(zerolog.ConsoleWriter{
@@ -91,6 +96,7 @@ func Execute() {
 		case strings.Contains(msg, "required flag") ||
 			strings.Contains(msg, "flags in the group") ||
 			strings.Contains(msg, "unknown flag") ||
+			strings.Contains(msg, "unknown command") ||
 			strings.Contains(msg, "invalid argument") ||
 			strings.Contains(msg, "accepts") ||
 			strings.Contains(msg, "arg(s)"):

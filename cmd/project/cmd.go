@@ -17,9 +17,8 @@ func resolveOutput(cmd *cobra.Command, output types.OutputFormat) types.OutputFo
 func NewProjectCommand() *cobra.Command {
 	var client api.Client
 	cmd := &cobra.Command{
-		Use:     "project",
-		Short:   "Work with TickTick projects",
-		Aliases: []string{"list"},
+		Use:   "project",
+		Short: "Work with TickTick projects",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			client = utils.LoadClient()
 			return nil
