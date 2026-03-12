@@ -186,6 +186,23 @@ You can set the default project with `tickli project use`.
 
 To log out, run `tickli reset`. This removes the access token and re-runs authentication.
 
+## Shell Completions
+
+Enable tab completions for commands, flags, project IDs, and task IDs:
+
+```bash
+# Bash
+tickli completion bash > /etc/bash_completion.d/tickli
+
+# Zsh
+tickli completion zsh > "${fpath[1]}/_tickli"
+
+# Fish
+tickli completion fish > ~/.config/fish/completions/tickli.fish
+```
+
+Restart your shell after installing.
+
 ## Documentation
 
 For complete documentation on all available commands:
