@@ -2,15 +2,32 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/sho0pi/tickli/cmd/project"
 	"github.com/sho0pi/tickli/cmd/subtask"
 	"github.com/sho0pi/tickli/cmd/task"
 	"github.com/spf13/cobra"
-	"os"
-	"time"
+	"golang.org/x/term"
 )
+
+var noColor bool
+
+func ColorDisabled() bool {
+	if noColor {
+		return true
+	}
+	if _, ok := os.LookupEnv("NO_COLOR"); ok {
+		return true
+	}
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
+		return true
+	}
+	return false
+}
 
 func NewTickliCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -21,6 +38,7 @@ Complete documentation is available at https://github.com/sho0pi/tickli`,
 		SilenceErrors: true,
 		SilenceUsage:  false,
 	}
+	cmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
 	cmd.AddCommand(
 		NewInitCommand(),
 		NewResetCommand(),
@@ -35,9 +53,14 @@ Complete documentation is available at https://github.com/sho0pi/tickli`,
 
 func Execute() {
 	cmd := NewTickliCommand()
+
+	// Parse flags early so --no-color is available before PersistentPreRun
+	cmd.ParseFlags(os.Args[1:])
+
 	zerolog.TimeFieldFormat = time.RFC3339
 	log.Logger = log.Output(zerolog.ConsoleWriter{
 		Out:        os.Stderr,
+		NoColor:    ColorDisabled(),
 		TimeFormat: "15:04:05",
 		FormatFieldName: func(i interface{}) string {
 			return i.(string) + ":"
