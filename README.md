@@ -29,7 +29,7 @@ brew install tickli
 ### Using Go
 
 ```bash
-go install github.com/sho0pi/tickli@latest
+go install github.com/botre/tickli@latest
 ```
 
 ### Download from Releases
