@@ -95,6 +95,19 @@ Common flags: `-t` title, `-c` content, `-p` priority (none/low/medium/high), `-
 | `tickli project update`  |               | Modify a project's properties   |
 | `tickli project delete`  | `rm`          | Delete a project                |
 
+## Configuration
+
+Tickli stores its configuration at `~/.config/tickli/config.yaml` (following the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/)).
+
+| Key                     | Type   | Default     | Description                                      |
+| ----------------------- | ------ | ----------- | ------------------------------------------------ |
+| `default_project_id`    | string | `""`        | Default project ID used when no project is specified |
+| `default_project_color` | string | `"#FF1111"` | Default color for newly created projects         |
+
+You can set the default project interactively with `tickli project use`.
+
+OAuth credentials are stored separately at `~/.local/share/tickli/token`.
+
 ## Interactive TUI Experience (Coming Soon!)
 
 ![Tickli TUI Demo](assets/tickli-tui-demo.gif)
