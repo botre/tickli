@@ -115,7 +115,15 @@ Tickli stores its configuration at `~/.config/tickli/config.yaml` (following the
 
 You can set the default project interactively with `tickli project use`.
 
-OAuth credentials are stored separately at `~/.local/share/tickli/token`.
+### Files
+
+| Path | Description |
+| ---- | ----------- |
+| `~/.config/tickli/config.yaml` | Configuration (default project, colors) |
+| `~/.config/tickli/credentials` | TickTick Client ID and Client Secret |
+| `~/.local/share/tickli/token` | OAuth access token |
+
+To log out, run `tickli reset` — this removes the access token and re-runs authentication.
 
 ## Interactive TUI Experience (Coming Soon!)
 
