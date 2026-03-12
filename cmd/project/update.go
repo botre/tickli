@@ -28,7 +28,7 @@ func newUpdateProjectCommand(client *api.Client) *cobra.Command {
 	opts := &updateProjectOptions{}
 	cmd := &cobra.Command{
 		Use:   "update <project-id>",
-		Short: "Update an existing project's properties",
+		Short: "Update a project",
 		Long: `Modify the properties of an existing project.
     
 You can update a project's name, color, view mode, or kind.
@@ -94,13 +94,16 @@ Changes only the properties you specify - others remain unchanged.`,
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to update project %s", opts.projectID))
 			}
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				jsonData, err := json.MarshalIndent(p, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
-			} else {
+			case types.OutputQuiet:
+				fmt.Println(p.ID)
+			default:
 				fmt.Printf("Project %s updated successfully\n", p.ID)
 				fmt.Println(utils.GetProjectDescription(p))
 			}
@@ -110,10 +113,13 @@ Changes only the properties you specify - others remain unchanged.`,
 
 	cmd.Flags().StringVarP(&opts.name, "name", "n", "", "Change the project name")
 	cmd.Flags().VarP(&opts.color, "color", "c", "Change the project color (hex format, e.g., '#F18181')")
+	cmd.Flags().Lookup("color").DefValue = ""
 	_ = cmd.RegisterFlagCompletionFunc("color", project.ColorCompletionFunc)
 	cmd.Flags().Var(&opts.viewMode, "view-mode", "Change how tasks are displayed: list, kanban, or timeline")
+	cmd.Flags().Lookup("view-mode").DefValue = ""
 	_ = cmd.RegisterFlagCompletionFunc("view-mode", project.ViewModeCompletionFunc)
 	cmd.Flags().Var(&opts.kind, "kind", "Change project type: TASK or NOTE")
+	cmd.Flags().Lookup("kind").DefValue = ""
 	_ = cmd.RegisterFlagCompletionFunc("kind", project.KindCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Update project by answering prompts instead of using flags")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")

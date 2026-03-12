@@ -16,10 +16,9 @@ import (
 )
 
 type createOptions struct {
-	title       string
-	content     string
-	description string
-	priority    task.Priority
+	title    string
+	content  string
+	priority task.Priority
 	tags        []string
 
 	// time specific vars
@@ -110,10 +109,8 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				ProjectID: opts.projectID,
 				Title:     opts.title,
 				Content:   opts.content,
-				Desc:      opts.description,
-
-				Priority: opts.priority,
-				Tags:     opts.tags,
+				Priority:  opts.priority,
+				Tags:      opts.tags,
 			}
 
 			if opts.date != "" {
@@ -151,13 +148,16 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				return errors.Wrap(err, "failed to create task")
 			}
 
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				jsonData, err := json.MarshalIndent(t, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
-			} else {
+			case types.OutputQuiet:
+				fmt.Println(t.ID)
+			default:
 				fmt.Printf("Created task %s\n", t.ID)
 			}
 			return nil
@@ -166,8 +166,6 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Title of the task (required unless -i)")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Additional details about the task")
-	cmd.Flags().StringVarP(&opts.description, "desc", "d", "", "Description (for checklist)")
-	cmd.Flags().MarkDeprecated("desc", "please use --content")
 	cmd.Flags().BoolVarP(&opts.allDay, "all-day", "a", false, "Set as an all-day task without specific time")
 	cmd.Flags().StringVar(&opts.startDate, "start", "", "When the task begins (ISO format: '2025-02-18T15:04:05Z')")
 	cmd.Flags().StringVar(&opts.dueDate, "due", "", "When the task is due (ISO format: '2025-02-18T18:00:00Z')")
@@ -177,11 +175,11 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.MarkFlagsMutuallyExclusive("date", "start")
 	cmd.MarkFlagsMutuallyExclusive("date", "due")
 
-	cmd.Flags().StringVar(&opts.timeZone, "tz", "", "Timezone for date calculations (e.g., 'America/Los_Angeles')")
+	cmd.Flags().StringVar(&opts.timeZone, "timezone", "", "Timezone for date calculations (e.g., 'America/Los_Angeles')")
 	cmd.Flags().StringSliceVar(&opts.reminders, "reminders", []string{}, "List of reminder triggers (e.g., '9h', '0s')")
 	cmd.Flags().StringSliceVar(&opts.tags, "tags", []string{}, "Apply tags to categorize the task (comma-separated)")
 	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "Recurring rule (e.g., 'daily', 'weekly on monday')")
-	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high (default: none)")
+	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Create task by answering prompts")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")

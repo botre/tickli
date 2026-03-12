@@ -36,16 +36,16 @@ func newListCommand(client *api.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List and select from available projects",
+		Short:   "List projects",
 		Long: `Display all available projects and allow selection of one.
 
 This command shows all projects matching the optional filter criteria,
 then displays a fuzzy-search selector to choose a project.`,
 		Example: `  # List all projects
   tickli project list
-  
+
   # Filter projects by name
-  tickli project list -f "work"`,
+  tickli project list --filter "work"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			projects, err := client.ListProjects()
 			if err != nil {
@@ -57,26 +57,29 @@ then displays a fuzzy-search selector to choose a project.`,
 				return err
 			}
 
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				jsonData, err := json.MarshalIndent(projects, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
-				return nil
+			case types.OutputQuiet:
+				for _, p := range projects {
+					fmt.Println(p.ID)
+				}
+			default:
+				project, err := utils.FuzzySelectProject(projects, "")
+				if err != nil {
+					return errors.Wrap(err, "failed to select project")
+				}
+				fmt.Println(fmt.Sprintf("(%s) %s", project.ID, project.Name))
 			}
-
-			project, err := utils.FuzzySelectProject(projects, "")
-			if err != nil {
-				return errors.Wrap(err, "failed to select project")
-			}
-
-			fmt.Println(fmt.Sprintf("(%s) %s", project.ID, project.Name))
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.filter, "filter", "f", "", "Only show projects with names containing the provided text")
+	cmd.Flags().StringVar(&opts.filter, "filter", "", "Only show projects with names containing the provided text")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
 	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 

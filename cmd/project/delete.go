@@ -22,7 +22,7 @@ func newDeleteCommand(client *api.Client) *cobra.Command {
 	opts := deleteOptions{}
 	cmd := &cobra.Command{
 		Use:   "delete <project-id>",
-		Short: "Delete an existing project",
+		Short: "Delete a project",
 		Long: `Permanently delete a project by its ID.
 
 This operation cannot be undone. By default, you will be asked to confirm
@@ -53,11 +53,14 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 				return errors.Wrap(err, fmt.Sprintf("failed to delete project %s", opts.projectID))
 			}
 
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				result := map[string]string{"id": opts.projectID, "status": "deleted"}
 				jsonData, _ := json.MarshalIndent(result, "", "  ")
 				fmt.Println(string(jsonData))
-			} else {
+			case types.OutputQuiet:
+				fmt.Println(opts.projectID)
+			default:
 				fmt.Printf("Project %s deleted\n", opts.projectID)
 			}
 

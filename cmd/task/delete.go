@@ -23,7 +23,7 @@ func newDeleteCommand(client *api.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete <task-id>",
 		Aliases: []string{"rm", "remove"},
-		Short:   "Remove a task permanently",
+		Short:   "Delete a task",
 		Long: `Delete a task completely from your TickTick account.
 
 This operation cannot be undone. By default, you will be asked to confirm
@@ -54,11 +54,14 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 				return errors.Wrap(err, fmt.Sprintf("failed to delete task %s", opts.taskID))
 			}
 
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				result := map[string]string{"id": opts.taskID, "status": "deleted"}
 				jsonData, _ := json.MarshalIndent(result, "", "  ")
 				fmt.Println(string(jsonData))
-			} else {
+			case types.OutputQuiet:
+				fmt.Println(opts.taskID)
+			default:
 				fmt.Printf("Task %s deleted\n", opts.taskID)
 			}
 

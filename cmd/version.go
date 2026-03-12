@@ -12,7 +12,7 @@ var Version = "dev"
 func NewVersionCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "Show the version of Tickli",
+		Short: "Show the version",
 		Long: `Display the current version of the Tickli CLI tool.
 This command shows the version number, which can be set at build time 
 or automatically detected from build information.`,

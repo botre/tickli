@@ -20,10 +20,9 @@ import (
 type updateOptions struct {
 	taskID string
 
-	title       string
-	content     string
-	description string
-	priority    task.Priority
+	title    string
+	content  string
+	priority task.Priority
 	tags        []string
 
 	// time specific vars
@@ -47,7 +46,7 @@ func newUpdateCommand(client *api.Client) *cobra.Command {
 	opts := &updateOptions{}
 	cmd := &cobra.Command{
 		Use:   "update <task-id>",
-		Short: "Modify an existing task's properties",
+		Short: "Update a task",
 		Long: `Update any property of an existing task identified by its ID.
     
 Changes only the properties you specify - others remain unchanged.
@@ -123,9 +122,6 @@ This command allows modifying title, content, priority, dates, and more.`,
 			if cmd.Flags().Changed("content") {
 				t.Content = opts.content
 			}
-			if cmd.Flags().Changed("desc") {
-				t.Desc = opts.description
-			}
 			if cmd.Flags().Changed("priority") {
 				t.Priority = opts.priority
 			}
@@ -166,13 +162,16 @@ This command allows modifying title, content, priority, dates, and more.`,
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to update task %s", opts.taskID))
 			}
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				jsonData, err := json.MarshalIndent(t, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
-			} else {
+			case types.OutputQuiet:
+				fmt.Println(t.ID)
+			default:
 				fmt.Printf("Task %s updated successfully\n", t.ID)
 				fmt.Println(utils.GetTaskDescription(*t, project.DefaultColor))
 			}
@@ -182,8 +181,6 @@ This command allows modifying title, content, priority, dates, and more.`,
 
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Change the task title")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Change or add content/description")
-	cmd.Flags().StringVarP(&opts.description, "desc", "d", "", "New description (for checklist)")
-	cmd.Flags().MarkDeprecated("desc", "please use --content")
 	cmd.Flags().BoolVarP(&opts.allDay, "all-day", "a", false, "Toggle all-day status for the task")
 	cmd.Flags().StringVar(&opts.startDate, "start", "", "Change when the task begins")
 	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Change when the task is due")
@@ -196,7 +193,7 @@ This command allows modifying title, content, priority, dates, and more.`,
 	cmd.Flags().StringVar(&opts.timeZone, "timezone", "", "Change timezone for date calculations")
 	cmd.Flags().StringSliceVar(&opts.reminders, "reminders", []string{}, "Set reminders (e.g., '10m', '1h before')")
 	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "New recurring rule (e.g., 'daily', 'weekly on monday')")
-	cmd.Flags().Var(&opts.priority, "priority", "Change task importance: none, low, medium, high")
+	cmd.Flags().VarP(&opts.priority, "priority", "p", "Change task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Update task by answering prompts")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")

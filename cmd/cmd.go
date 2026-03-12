@@ -3,18 +3,31 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/gookit/color"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/cmd/project"
-	"github.com/botre/tickli/cmd/subtask"
 	"github.com/botre/tickli/cmd/task"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
-var noColor bool
+const (
+	ExitSuccess   = 0
+	ExitError     = 1
+	ExitUsage     = 2
+	ExitNotFound  = 3
+	ExitAuthError = 4
+)
+
+var (
+	noColor     bool
+	JSONOutput  bool
+	QuietOutput bool
+)
 
 func ColorDisabled() bool {
 	if noColor {
@@ -40,13 +53,14 @@ Complete documentation is available at https://github.com/botre/tickli`,
 		SilenceUsage:  false,
 	}
 	cmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
+	cmd.PersistentFlags().BoolVar(&JSONOutput, "json", false, "Output in JSON format")
+	cmd.PersistentFlags().BoolVarP(&QuietOutput, "quiet", "q", false, "Only print IDs")
 	cmd.AddCommand(
 		NewInitCommand(),
 		NewResetCommand(),
 		NewVersionCommand(),
 		task.NewTaskCommand(),
 		project.NewProjectCommand(),
-		subtask.NewSubtaskCommand(),
 	)
 
 	return cmd
@@ -57,6 +71,10 @@ func Execute() {
 
 	// Parse flags early so --no-color is available before PersistentPreRun
 	cmd.ParseFlags(os.Args[1:])
+
+	if ColorDisabled() {
+		color.Disable()
+	}
 
 	zerolog.TimeFieldFormat = time.RFC3339
 	log.Logger = log.Output(zerolog.ConsoleWriter{
@@ -72,7 +90,24 @@ func Execute() {
 	})
 
 	if err := cmd.Execute(); err != nil {
-		fmt.Println(err)
-		log.Fatal().Err(err).Msg("Failed to execute command")
+		msg := err.Error()
+		code := ExitError
+		switch {
+		case strings.Contains(msg, "required flag") ||
+			strings.Contains(msg, "flags in the group") ||
+			strings.Contains(msg, "unknown flag") ||
+			strings.Contains(msg, "unknown command") ||
+			strings.Contains(msg, "invalid argument") ||
+			strings.Contains(msg, "accepts") ||
+			strings.Contains(msg, "arg(s)"):
+			code = ExitUsage
+		case strings.Contains(msg, "not found"):
+			code = ExitNotFound
+		case strings.Contains(msg, "token") || strings.Contains(msg, "auth") || strings.Contains(msg, "OAuth"):
+			code = ExitAuthError
+		}
+		fmt.Fprintln(os.Stderr, err)
+		log.Error().Err(err).Msg("Failed to execute command")
+		os.Exit(code)
 	}
 }

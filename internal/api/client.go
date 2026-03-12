@@ -150,6 +150,11 @@ func (c *Client) GetProjectWithTasks(projectID string) (*types.ProjectData, erro
 		return nil, fmt.Errorf("failed to get project data: %s", resp.String())
 	}
 
+	// The API doesn't return project metadata for inbox, fill it in
+	if projectData.Project.ID == "" && projectID == types.InboxProject.ID {
+		projectData.Project = types.InboxProject
+	}
+
 	return &projectData, nil
 }
 

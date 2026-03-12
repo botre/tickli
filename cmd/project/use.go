@@ -1,16 +1,17 @@
 package project
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"strings"
+
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/config"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 func findProjectByID(projects []types.Project, id string) (types.Project, error) {
@@ -38,29 +39,23 @@ func findProjectsByName(projects []*types.Project, name string) ([]*types.Projec
 
 type useProjectOptions struct {
 	projectID string
+	output    types.OutputFormat
 }
 
 func newUseProjectCmd(client *api.Client) *cobra.Command {
 	opts := &useProjectOptions{}
 	cmd := &cobra.Command{
 		Use:   "use",
-		Short: "Switch active project context",
+		Short: "Set the active project",
 		Long: `Switch the active project context for subsequent commands.
 
-This command allows you to change your active project in three ways:
-1. Interactive selection (no arguments)
-2. Direct selection by project name
-3. Direct selection by project ID
-
-The selected project becomes the default context for future commands.`,
+Without arguments, opens an interactive selector. With a project ID argument,
+switches directly. The selected project becomes the default for future commands.`,
 		Example: `  # Interactive project selection
   tickli project use
-  
-  # Switch by project name (can be partial)
-  tickli project use -n "Work Tasks"
-  
+
   # Switch by project ID
-  tickli project use -i abc123def456`,
+  tickli project use abc123def456`,
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completion.ProjectIDs(),
 		PreRun: func(cmd *cobra.Command, args []string) {
@@ -99,13 +94,23 @@ The selected project becomes the default context for future commands.`,
 			if err := config.Save(cfg); err != nil {
 				return errors.Wrap(err, "failed to save config")
 			}
-			log.Info().
-				Str("project_id", cfg.DefaultProjectID).
-				Str("project_name", selectedProject.Name).
-				Msg("Switched to project")
+
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
+				result := map[string]string{"id": selectedProject.ID, "name": selectedProject.Name}
+				jsonData, _ := json.MarshalIndent(result, "", "  ")
+				fmt.Println(string(jsonData))
+			case types.OutputQuiet:
+				fmt.Println(selectedProject.ID)
+			default:
+				fmt.Printf("Switched to project %s (%s)\n", selectedProject.Name, selectedProject.ID)
+			}
 			return nil
 		},
 	}
+
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
+	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 
 	return cmd
 }

@@ -21,7 +21,7 @@ func newCompleteCmd(client *api.Client) *cobra.Command {
 	opts := &completeOptions{}
 	cmd := &cobra.Command{
 		Use:   "complete <task-id>",
-		Short: "Mark a task as completed",
+		Short: "Complete a task",
 		Long: `Change a task's status to completed.
 
 Takes a task ID and marks it as done. The task remains in the system
@@ -39,11 +39,14 @@ but will no longer appear in default listings unless using the --all flag.`,
 				return errors.Wrap(err, "failed to complete task")
 			}
 
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				result := map[string]string{"id": opts.taskID, "status": "completed"}
 				jsonData, _ := json.MarshalIndent(result, "", "  ")
 				fmt.Println(string(jsonData))
-			} else {
+			case types.OutputQuiet:
+				fmt.Println(opts.taskID)
+			default:
 				fmt.Printf("%s Task %s completed\n", color.Green.Sprint("☑"), opts.taskID)
 			}
 			return nil

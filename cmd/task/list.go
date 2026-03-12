@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/internal/api"
@@ -28,7 +30,6 @@ type listOptions struct {
 func fetchProjectColor(client *api.Client, projectID string) project.Color {
 	p, err := client.GetProject(projectID)
 	if err != nil {
-		log.Warn().Err(err).Msg("failed to get p color, using default color")
 		return project.DefaultColor
 	}
 	return p.Color
@@ -106,9 +107,30 @@ func filterTasks(tasks []types.Task, opts *listOptions) []types.Task {
 		//	})
 	}
 
-	// TODO: implement due date filtering
 	if opts.dueDate != "" {
-		// Future implementation
+		now := time.Now()
+		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		tomorrow := today.AddDate(0, 0, 1)
+		weekEnd := today.AddDate(0, 0, 7)
+
+		tasks = Filter(tasks, func(t types.Task) bool {
+			due := time.Time(t.DueDate)
+			if due.IsZero() {
+				return false
+			}
+			switch opts.dueDate {
+			case "today":
+				return !due.Before(today) && due.Before(tomorrow)
+			case "tomorrow":
+				return !due.Before(tomorrow) && due.Before(tomorrow.AddDate(0, 0, 1))
+			case "this-week":
+				return !due.Before(today) && due.Before(weekEnd)
+			case "overdue":
+				return due.Before(now)
+			default:
+				return false
+			}
+		})
 	}
 
 	return tasks
@@ -119,7 +141,7 @@ func newListCommand(client *api.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "Browse and select from available tasks",
+		Short:   "List tasks",
 		Long: `Display tasks in the current project or a specified project.
     
 By default, only shows incomplete tasks. You can filter tasks by priority,
@@ -131,7 +153,7 @@ tags, and due date. Results are displayed in an interactive selector.`,
   tickli task list --all
   
   # List tasks with specific tag
-  tickli task list -t important
+  tickli task list --tag important
   
   # List high priority tasks
   tickli task list -p high
@@ -143,6 +165,13 @@ tags, and due date. Results are displayed in an interactive selector.`,
 			opts.projectID = projectID
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if opts.dueDate != "" {
+				switch opts.dueDate {
+				case "today", "tomorrow", "this-week", "overdue":
+				default:
+					return fmt.Errorf("invalid --due value %q: must be one of today, tomorrow, this-week, overdue", opts.dueDate)
+				}
+			}
 			if opts.projectID == "" {
 				return fmt.Errorf("no project selected. Use -P <project-id> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
 			}
@@ -181,26 +210,32 @@ tags, and due date. Results are displayed in an interactive selector.`,
 				}
 			}
 
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
+				if filteredTasks == nil {
+					filteredTasks = []types.Task{}
+				}
 				jsonData, err := json.MarshalIndent(filteredTasks, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
-				return nil
+			case types.OutputQuiet:
+				for _, t := range filteredTasks {
+					fmt.Println(t.ID)
+				}
+			default:
+				t, err := utils.FuzzySelectTask(filteredTasks, projectColor, "")
+				if err != nil {
+					log.Fatal().Err(err).Msg("failed to select task")
+				}
+				fmt.Println(utils.GetTaskDescription(t, projectColor))
 			}
-
-			t, err := utils.FuzzySelectTask(filteredTasks, projectColor, "")
-			if err != nil {
-				log.Fatal().Err(err).Msg("failed to select task")
-			}
-
-			fmt.Println(utils.GetTaskDescription(t, projectColor))
 			return nil
 		},
 	}
 	cmd.Flags().BoolVarP(&opts.all, "all", "a", false, "Include completed tasks in the results")
-	cmd.Flags().StringVarP(&opts.tag, "tag", "t", "", "Only show tasks with this specific tag")
+	cmd.Flags().StringVar(&opts.tag, "tag", "", "Only show tasks with this specific tag")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Only show tasks with this priority level or higher")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Filter by due date (today, tomorrow, this-week, overdue)")

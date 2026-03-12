@@ -30,7 +30,8 @@ func (s Status) MarshalJSON() ([]byte, error) {
 	return json.Marshal(int(s))
 }
 
-func (s Status) String() string {
+// ColorString returns the status icon with ANSI color for display
+func (s Status) ColorString() string {
 	switch s {
 	case StatusComplete:
 		return color.Green.Sprint("☑")
@@ -38,5 +39,17 @@ func (s Status) String() string {
 		return color.White.Sprint("☐")
 	default:
 		return color.Red.Sprint("☒")
+	}
+}
+
+// String returns a plain text label (used by cobra for help/defaults)
+func (s Status) String() string {
+	switch s {
+	case StatusComplete:
+		return "completed"
+	case StatusNormal:
+		return "normal"
+	default:
+		return "unknown"
 	}
 }
