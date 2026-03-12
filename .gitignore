@@ -21,9 +21,8 @@
 go.work
 go.work.sum
 
-# secrets
+# env file
 .env
-credentials
 
 .idea/
 
