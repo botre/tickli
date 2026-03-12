@@ -53,7 +53,9 @@ func NewInitCommand() *cobra.Command {
 		Long: `Initialize tickli by performing OAuth authentication with TickTick.
 This will open your browser for authentication and store the access token securely.`,
 		PreRun: func(cmd *cobra.Command, args []string) {
-			fmt.Println(logo)
+			if !ColorDisabled() {
+				fmt.Println(logo)
+			}
 			if token, err := config.LoadToken(); err != nil {
 				log.Fatal().Err(err).Msg("failed to check existing token")
 			} else if token != "" {
