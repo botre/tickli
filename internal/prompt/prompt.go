@@ -7,9 +7,17 @@ import (
 	"strings"
 
 	"github.com/ktr0731/go-fuzzyfinder"
+	"golang.org/x/term"
 )
 
 var reader = bufio.NewReader(os.Stdin)
+
+// IsInteractive returns true when stdin is a terminal.
+// Commands should skip confirmation prompts when this is false,
+// enabling scripted and agentic usage without --force.
+func IsInteractive() bool {
+	return term.IsTerminal(int(os.Stdin.Fd()))
+}
 
 // String prompts the user for text input. If defaultVal is non-empty, it is
 // shown in brackets and returned when the user presses Enter without typing.

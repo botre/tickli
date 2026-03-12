@@ -1,14 +1,16 @@
 package project
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +21,7 @@ type updateProjectOptions struct {
 	viewMode    project.ViewMode
 	kind        project.Kind
 	interactive bool
+	output      types.OutputFormat
 }
 
 func newUpdateProjectCommand(client *api.Client) *cobra.Command {
@@ -91,8 +94,16 @@ Changes only the properties you specify - others remain unchanged.`,
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to update project %s", opts.projectID))
 			}
-			fmt.Printf("Project %s updated successfully\n", p.ID)
-			fmt.Println(utils.GetProjectDescription(p))
+			if opts.output == types.OutputJSON {
+				jsonData, err := json.MarshalIndent(p, "", "  ")
+				if err != nil {
+					return errors.Wrap(err, "failed to marshal output")
+				}
+				fmt.Println(string(jsonData))
+			} else {
+				fmt.Printf("Project %s updated successfully\n", p.ID)
+				fmt.Println(utils.GetProjectDescription(p))
+			}
 			return nil
 		},
 	}
@@ -105,6 +116,8 @@ Changes only the properties you specify - others remain unchanged.`,
 	cmd.Flags().Var(&opts.kind, "kind", "Change project type: TASK or NOTE")
 	_ = cmd.RegisterFlagCompletionFunc("kind", project.KindCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Update project by answering prompts instead of using flags")
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
+	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 
 	return cmd
 }

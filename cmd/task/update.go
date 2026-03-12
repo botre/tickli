@@ -1,11 +1,11 @@
 package task
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/prompt"
@@ -13,6 +13,7 @@ import (
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -39,6 +40,8 @@ type updateOptions struct {
 
 	// interactive indicates if you should prompt to get title and content
 	interactive bool
+
+	output types.OutputFormat
 }
 
 func newUpdateCommand(client *api.Client) *cobra.Command {
@@ -165,8 +168,16 @@ This command allows modifying title, content, priority, dates, and more.`,
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to update task %s", opts.taskID))
 			}
-			fmt.Printf("Task %s updated successfully\n", t.ID)
-			fmt.Println(utils.GetTaskDescription(*t, project.DefaultColor))
+			if opts.output == types.OutputJSON {
+				jsonData, err := json.MarshalIndent(t, "", "  ")
+				if err != nil {
+					return errors.Wrap(err, "failed to marshal output")
+				}
+				fmt.Println(string(jsonData))
+			} else {
+				fmt.Printf("Task %s updated successfully\n", t.ID)
+				fmt.Println(utils.GetTaskDescription(*t, project.DefaultColor))
+			}
 			return nil
 		},
 	}
@@ -190,6 +201,8 @@ This command allows modifying title, content, priority, dates, and more.`,
 	cmd.Flags().Var(&opts.priority, "priority", "Change task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Update task by answering prompts")
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
+	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 
 	return cmd
 }

@@ -3,11 +3,13 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"github.com/botre/tickli/internal/config"
-	"github.com/spf13/cobra"
 	"os"
 	"strings"
+
+	"github.com/rs/zerolog/log"
+	"github.com/botre/tickli/internal/config"
+	"github.com/botre/tickli/internal/prompt"
+	"github.com/spf13/cobra"
 )
 
 type resetOptions struct {
@@ -22,13 +24,13 @@ func NewResetCommand() *cobra.Command {
 		Long: `Reset tickli by removing the current access token and re-running the initialization process.
 This is useful if you need to reauthenticate with TickTick.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if !opts.force {
+			if !opts.force && prompt.IsInteractive() {
 				fmt.Printf("Are you sure you want to reset authentication? (y/N): ")
 				reader := bufio.NewReader(os.Stdin)
 				confirm, _ := reader.ReadString('\n')
 				confirm = strings.TrimSpace(confirm)
 				if confirm != "y" && confirm != "Y" {
-					fmt.Println("Deletion aborted")
+					fmt.Println("Reset aborted")
 					return
 				}
 			}
