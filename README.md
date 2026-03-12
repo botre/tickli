@@ -194,6 +194,3 @@ For complete documentation on all available commands:
 tickli --help
 ```
 
-## Contributing
-
-Contributions are welcome!
