@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/cmd/project"
 	"github.com/botre/tickli/cmd/task"
+	"github.com/botre/tickli/cmd/view"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -61,6 +62,10 @@ Complete documentation is available at https://github.com/botre/tickli`,
 		NewVersionCommand(),
 		task.NewTaskCommand(),
 		project.NewProjectCommand(),
+		view.NewTodayCommand(),
+		view.NewTomorrowCommand(),
+		view.NewWeekCommand(),
+		view.NewInboxCommand(),
 	)
 
 	return cmd

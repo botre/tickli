@@ -4,6 +4,7 @@ A command line interface for TickTick task management.
 
 ## Features
 
+- Smart views: today, tomorrow, next 7 days, and inbox across all projects
 - Create, update, complete, uncomplete, and delete tasks
 - Create, update, and delete projects
 - Set dates, priorities, tags, and content on tasks
@@ -52,6 +53,9 @@ tickli task create --title "Important meeting" --priority high --date "tomorrow 
 # List your tasks
 tickli task list
 
+# See what's due today (across all projects)
+tickli today
+
 # Complete a task
 tickli task complete <task-id>
 
@@ -68,6 +72,23 @@ tickli task uncomplete <task-id>
 | `tickli init`     | Initialize tickli                        |
 | `tickli reset`    | Reset authentication (`--force`/`-f` to skip confirmation) |
 | `tickli version`  | Show the version                         |
+
+### Smart Views
+
+| Command              | Description                                              |
+| -------------------- | -------------------------------------------------------- |
+| `tickli today`       | Show today's tasks and overdue tasks across all projects |
+| `tickli tomorrow`    | Show tomorrow's tasks across all projects                |
+| `tickli week`        | Show tasks for the next 7 days across all projects       |
+| `tickli inbox`       | Show tasks in the inbox                                  |
+
+Smart view flags:
+
+| Flag              | Short | Description                                        |
+| ----------------- | ----- | -------------------------------------------------- |
+| `--all`           | `-a`  | Include completed tasks                            |
+| `--priority`      | `-p`  | Filter by minimum priority: `none`, `low`, `medium`, `high` |
+| `--tag`           |       | Filter by tag                                      |
 
 ### Tasks
 
@@ -153,6 +174,12 @@ tickli task show <task-id> --json
 
 # Delete a task in one line
 tickli task delete $(tickli task create --title "temp" --project inbox --quiet) --force
+
+# Get today's tasks as JSON
+tickli today --json
+
+# Count overdue high priority tasks
+tickli today -p high --quiet | wc -l
 ```
 
 ### Exit Codes
