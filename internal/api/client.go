@@ -251,6 +251,32 @@ func (c *Client) UpdateTask(task *types.Task) (*types.Task, error) {
 	return task, nil
 }
 
+// MoveTask moves a task to a different project using the dedicated move endpoint.
+func (c *Client) MoveTask(taskID, fromProjectID, toProjectID string) error {
+	type moveItem struct {
+		TaskID        string `json:"taskId"`
+		FromProjectID string `json:"fromProjectId"`
+		ToProjectID   string `json:"toProjectId"`
+	}
+
+	resp, err := c.http.R().
+		SetBody([]moveItem{{
+			TaskID:        taskID,
+			FromProjectID: fromProjectID,
+			ToProjectID:   toProjectID,
+		}}).
+		Post("/task/move")
+
+	if err != nil {
+		return errors.Wrap(err, "moving task")
+	}
+	if resp.IsError() {
+		return fmt.Errorf("failed to move task (status %d): %s", resp.StatusCode(), resp.String())
+	}
+
+	return nil
+}
+
 func (c *Client) UpdateProject(project types.Project) (types.Project, error) {
 	resp, err := c.http.R().
 		SetBody(project).
