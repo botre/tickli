@@ -127,11 +127,11 @@ func (c *Client) ResolveProject(idOrName string) (types.Project, error) {
 	return types.NullProject, fmt.Errorf("project %q not found by ID or name", idOrName)
 }
 
-func (c *Client) GetTask(taskID string) (*types.Task, error) {
+func (c *Client) getTaskFromProject(projectID, taskID string) (*types.Task, error) {
 	var task types.Task
 	resp, err := c.http.R().
 		SetResult(&task).
-		Get(fmt.Sprintf("/project/%s/task/%s", types.InboxProject.ID, taskID))
+		Get(fmt.Sprintf("/project/%s/task/%s", projectID, taskID))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "requesting task")
@@ -139,8 +139,36 @@ func (c *Client) GetTask(taskID string) (*types.Task, error) {
 	if resp.IsError() {
 		return nil, fmt.Errorf("failed to get task: %s", resp.String())
 	}
+	if task.ID == "" || task.Title == "" {
+		return nil, fmt.Errorf("task %s not found in project %s", taskID, projectID)
+	}
 
 	return &task, nil
+}
+
+// GetTask fetches a task by ID, searching across all projects if needed.
+func (c *Client) GetTask(taskID string) (*types.Task, error) {
+	// Try inbox first (most common case)
+	if t, err := c.getTaskFromProject(types.InboxProject.ID, taskID); err == nil {
+		return t, nil
+	}
+
+	// Search all projects
+	projects, err := c.ListProjects()
+	if err != nil {
+		return nil, errors.Wrap(err, "listing projects for task lookup")
+	}
+
+	for _, p := range projects {
+		if p.ID == types.InboxProject.ID {
+			continue // already tried
+		}
+		if t, err := c.getTaskFromProject(p.ID, taskID); err == nil {
+			return t, nil
+		}
+	}
+
+	return nil, fmt.Errorf("task %s not found in any project", taskID)
 }
 
 func (c *Client) ListTasks(projectID string) ([]types.Task, error) {

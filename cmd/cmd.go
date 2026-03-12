@@ -66,6 +66,7 @@ Complete documentation is available at https://github.com/botre/tickli`,
 		view.NewTomorrowCommand(),
 		view.NewWeekCommand(),
 		view.NewInboxCommand(),
+		view.NewAllCommand(),
 	)
 
 	return cmd

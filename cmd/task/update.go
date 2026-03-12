@@ -20,10 +20,11 @@ import (
 type updateOptions struct {
 	taskID string
 
-	title    string
-	content  string
-	priority task.Priority
-	tags        []string
+	title      string
+	content    string
+	priority   task.Priority
+	tags       []string
+	moveToProject string
 
 	// time specific vars
 	allDay    bool
@@ -158,6 +159,13 @@ This command allows modifying title, content, priority, dates, and more.`,
 			if cmd.Flags().Changed("all-day") {
 				t.IsAllDay = opts.allDay
 			}
+			if cmd.Flags().Changed("move-to") {
+				resolvedProject, resolveErr := client.ResolveProject(opts.moveToProject)
+				if resolveErr != nil {
+					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.moveToProject)
+				}
+				t.ProjectID = resolvedProject.ID
+			}
 			t, err = client.UpdateTask(t)
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to update task %s", opts.taskID))
@@ -195,6 +203,8 @@ This command allows modifying title, content, priority, dates, and more.`,
 	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "New recurring rule (e.g., 'daily', 'weekly on monday')")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Change task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
+	cmd.Flags().StringVar(&opts.moveToProject, "move-to", "", "Move task to a different project (name or ID)")
+	_ = cmd.RegisterFlagCompletionFunc("move-to", completion.ProjectIDs())
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Update task by answering prompts")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
 	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)

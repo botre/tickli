@@ -28,7 +28,7 @@ func InitConfig() error {
 	}
 
 	viper.SetDefault("default_project", "inbox")
-	viper.SetDefault("default_project_color", "#000000")
+	viper.SetDefault("default_project_color", "")
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		if err := viper.SafeWriteConfigAs(configPath); err != nil {
