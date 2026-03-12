@@ -147,7 +147,6 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	}
 
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Title of the task (required unless -i)")
-	cmd.MarkFlagsOneRequired("title", "interactive")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Additional details about the task")
 	cmd.Flags().StringVarP(&opts.description, "desc", "d", "", "Description (for checklist)")
 	cmd.Flags().MarkDeprecated("desc", "please use --content")
@@ -167,6 +166,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high (default: none)")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Create task by answering prompts")
+	cmd.MarkFlagsOneRequired("title", "interactive")
 
 	return cmd
 }
