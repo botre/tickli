@@ -112,16 +112,6 @@ You can set the default project interactively with `tickli project use`.
 
 To log out, run `tickli reset` — this removes the access token and re-runs authentication.
 
-## Roadmap 🗺️
-
-- [x] Basic task management
-- [x] Project management
-- [x] Authentication
-- [x] Advanced date/time handling and timezone support
-- [ ] Interactive modes for create/update commands
-- [ ] Subtask management
-- [ ] Task filtering by multiple criteria
-
 ## Documentation
 
 For complete documentation on all available commands:
