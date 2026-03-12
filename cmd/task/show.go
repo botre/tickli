@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"github.com/sho0pi/tickli/internal/api"
-	"github.com/sho0pi/tickli/internal/completion"
-	"github.com/sho0pi/tickli/internal/types"
-	"github.com/sho0pi/tickli/internal/types/project"
-	"github.com/sho0pi/tickli/internal/utils"
+	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/completion"
+	"github.com/botre/tickli/internal/types"
+	"github.com/botre/tickli/internal/types/project"
+	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
 )
 

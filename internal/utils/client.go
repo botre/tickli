@@ -2,8 +2,8 @@ package utils
 
 import (
 	"github.com/rs/zerolog/log"
-	"github.com/sho0pi/tickli/internal/api"
-	"github.com/sho0pi/tickli/internal/config"
+	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/config"
 )
 
 func LoadClient() api.Client {

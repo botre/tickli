@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
-	"github.com/sho0pi/tickli/internal/types"
+	"github.com/botre/tickli/internal/types"
 )
 
 const (

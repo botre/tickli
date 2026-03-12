@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"github.com/sho0pi/tickli/internal/config"
+	"github.com/botre/tickli/internal/config"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"

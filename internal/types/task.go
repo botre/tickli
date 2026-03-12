@@ -1,6 +1,6 @@
 package types
 
-import "github.com/sho0pi/tickli/internal/types/task"
+import "github.com/botre/tickli/internal/types/task"
 
 type Task struct {
 	ID            string          `json:"id"`

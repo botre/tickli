@@ -1,6 +1,6 @@
 package types
 
-import "github.com/sho0pi/tickli/internal/types/project"
+import "github.com/botre/tickli/internal/types/project"
 
 // InboxProject the Inbox project representation (cause is not returned by the api)
 var InboxProject = Project{

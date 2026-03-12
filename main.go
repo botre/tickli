@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/sho0pi/tickli/cmd"
+	"github.com/botre/tickli/cmd"
 )
 
 func main() {

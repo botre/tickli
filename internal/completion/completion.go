@@ -1,9 +1,9 @@
 package completion
 
 import (
-	"github.com/sho0pi/tickli/internal/api"
-	"github.com/sho0pi/tickli/internal/config"
-	"github.com/sho0pi/tickli/internal/types"
+	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/config"
+	"github.com/botre/tickli/internal/types"
 	"github.com/spf13/cobra"
 )
 
