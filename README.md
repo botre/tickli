@@ -26,6 +26,12 @@ brew tap sho0pi/homebrew-tap
 brew install tickli
 ```
 
+### Using Go
+
+```bash
+go install github.com/botre/tickli@latest
+```
+
 ### Download from Releases
 
 You can also download prebuilt binaries from the [GitHub releases page](https://github.com/Sho0pi/tickli/releases).
