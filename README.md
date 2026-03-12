@@ -188,46 +188,20 @@ To log out, run `tickli reset`. This removes the access token and re-runs authen
 
 ## Shell Completions
 
-Tickli supports tab completions for commands, flags, project IDs, and task IDs.
-
-#### Bash
+Enable tab completions for commands, flags, project IDs, and task IDs:
 
 ```bash
-# Current session
-source <(tickli completion bash)
-
-# Persistent (Linux)
+# Bash
 tickli completion bash > /etc/bash_completion.d/tickli
 
-# Persistent (macOS)
-tickli completion bash > $(brew --prefix)/etc/bash_completion.d/tickli
-```
-
-#### Zsh
-
-```bash
-# Current session
-source <(tickli completion zsh)
-
-# Persistent (Linux)
+# Zsh
 tickli completion zsh > "${fpath[1]}/_tickli"
 
-# Persistent (macOS)
-tickli completion zsh > $(brew --prefix)/share/zsh/site-functions/_tickli
-```
-
-> If completions aren't working, ensure `compinit` is loaded in your `~/.zshrc`:
-> `autoload -U compinit; compinit`
-
-#### Fish
-
-```bash
-# Current session
-tickli completion fish | source
-
-# Persistent
+# Fish
 tickli completion fish > ~/.config/fish/completions/tickli.fish
 ```
+
+Restart your shell after installing.
 
 ## Documentation
 
