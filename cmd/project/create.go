@@ -2,8 +2,10 @@ package project
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/utils"
@@ -40,6 +42,32 @@ supports both direct parameter input and interactive mode.`,
   # Create a project in interactive mode
   tickli project create -i`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if opts.interactive {
+				opts.name = prompt.String("Project name", opts.name)
+				if opts.name == "" {
+					return fmt.Errorf("project name is required")
+				}
+
+				colors := []string{"#3694FE (Default)", "#EC6665 (Red)", "#F2B04A (Orange)", "#FFD866 (Yellow)", "#5CD0A7 (Green)", "#9BECEC (Cyan)", "#4AA6EF (Blue)", "#CF66F6 (Purple)", "#EC70A5 (Pink)"}
+				colorHexes := []string{"#3694FE", "#EC6665", "#F2B04A", "#FFD866", "#5CD0A7", "#9BECEC", "#4AA6EF", "#CF66F6", "#EC70A5"}
+				idx, err := prompt.Select("Color:", colors)
+				if err == nil {
+					_ = opts.color.Set(colorHexes[idx])
+				}
+
+				viewModes := []string{"list", "kanban", "timeline"}
+				idx, err = prompt.Select("View mode:", viewModes)
+				if err == nil {
+					_ = opts.viewMode.Set(viewModes[idx])
+				}
+
+				kinds := []string{"TASK", "NOTE"}
+				idx, err = prompt.Select("Kind:", kinds)
+				if err == nil {
+					_ = opts.kind.Set(kinds[idx])
+				}
+			}
+
 			p := &types.Project{
 				Name:     opts.name,
 				Color:    opts.color,
@@ -57,8 +85,8 @@ supports both direct parameter input and interactive mode.`,
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&opts.name, "name", "n", "", "Name of the new project")
-	_ = cmd.MarkFlagRequired("name")
+	cmd.Flags().StringVarP(&opts.name, "name", "n", "", "Name of the new project (required unless -i)")
+	cmd.MarkFlagsOneRequired("name", "interactive")
 	cmd.Flags().VarP(&opts.color, "color", "c", "Color for the project (hex format, e.g., '#F18181')")
 	_ = cmd.RegisterFlagCompletionFunc("color", project.ColorCompletionFunc)
 	cmd.Flags().Var(&opts.viewMode, "view-mode", "How to display tasks: list, kanban, or timeline (default: list)")

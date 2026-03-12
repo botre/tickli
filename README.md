@@ -112,22 +112,15 @@ You can set the default project interactively with `tickli project use`.
 
 To log out, run `tickli reset` — this removes the access token and re-runs authentication.
 
-## Interactive TUI Experience (Coming Soon!)
-
-![Tickli TUI Demo](assets/tickli-tui-demo.gif)
-
 ## Roadmap 🗺️
 
 - [x] Basic task management
 - [x] Project management
 - [x] Authentication
 - [x] Advanced date/time handling and timezone support
-- [ ] Interactive modes for all commands
+- [ ] Interactive modes for create/update commands
 - [ ] Subtask management
-- [ ] TUI interface with bubbletea
 - [ ] Task filtering by multiple criteria
-- [ ] Offline mode and syncing
-- [ ] Custom views (Kanban, etc.)
 
 ## Documentation
 
@@ -136,8 +129,6 @@ For complete documentation on all available commands:
 ```bash
 tickli --help
 ```
-
-Or check out the [full documentation](docs/README.md).
 
 ## Contributing
 
