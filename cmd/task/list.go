@@ -143,6 +143,14 @@ tags, and due date. Results are displayed in an interactive selector.`,
 			opts.projectID = projectID
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if opts.projectID == "" {
+				return fmt.Errorf("no project selected. Use -P <project-id> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
+			}
+
+			if _, err := client.GetProject(opts.projectID); err != nil {
+				return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects", opts.projectID)
+			}
+
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 

@@ -102,17 +102,17 @@ func (c *Client) GetProject(id string) (types.Project, error) {
 	return project, nil
 }
 
-func (c *Client) GetTask(projectID string, taskID string) (*types.Task, error) {
+func (c *Client) GetTask(taskID string) (*types.Task, error) {
 	var task types.Task
 	resp, err := c.http.R().
 		SetResult(&task).
-		Get(fmt.Sprintf("/project/%s/task/%s", projectID, taskID))
+		Get(fmt.Sprintf("/project/%s/task/%s", types.InboxProject.ID, taskID))
 
 	if err != nil {
 		return nil, errors.Wrap(err, "requesting task")
 	}
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to list tasks: %s", resp.String())
+		return nil, fmt.Errorf("failed to get task: %s", resp.String())
 	}
 
 	return &task, nil
@@ -209,9 +209,14 @@ func (c *Client) UpdateProject(project types.Project) (types.Project, error) {
 	return project, nil
 }
 
-func (c *Client) DeleteTask(projectID, taskID string) error {
+func (c *Client) DeleteTask(taskID string) error {
+	task, err := c.GetTask(taskID)
+	if err != nil {
+		return errors.Wrap(err, "resolving task for deletion")
+	}
+
 	resp, err := c.http.R().
-		Delete(fmt.Sprintf("/project/%s/task/%s", projectID, taskID))
+		Delete(fmt.Sprintf("/project/%s/task/%s", task.ProjectID, taskID))
 
 	if err != nil {
 		return errors.Wrap(err, "deleting task")
@@ -223,9 +228,14 @@ func (c *Client) DeleteTask(projectID, taskID string) error {
 	return nil
 }
 
-func (c *Client) CompleteTask(projectID, taskID string) error {
+func (c *Client) CompleteTask(taskID string) error {
+	task, err := c.GetTask(taskID)
+	if err != nil {
+		return errors.Wrap(err, "resolving task for completion")
+	}
+
 	resp, err := c.http.R().
-		Post(fmt.Sprintf("/project/%s/task/%s/complete", projectID, taskID))
+		Post(fmt.Sprintf("/project/%s/task/%s/complete", task.ProjectID, taskID))
 
 	if err != nil {
 		return errors.Wrap(err, "completing task")
