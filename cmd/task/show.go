@@ -49,16 +49,18 @@ You can choose between human-readable output or machine-readable JSON.`,
 				log.Warn().Str("task-id", opts.taskID).Msg("task not found")
 				return fmt.Errorf("task %s not found", opts.taskID)
 			}
-			switch opts.output {
-			case types.OutputSimple:
-				fmt.Println(utils.GetTaskDescription(*task, project.DefaultColor))
-				fmt.Println(task.ID)
+			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
 				jsonData, err := json.MarshalIndent(task, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
+			case types.OutputQuiet:
+				fmt.Println(task.ID)
+			default:
+				fmt.Println(utils.GetTaskDescription(*task, project.DefaultColor))
+				fmt.Println(task.ID)
 			}
 			return nil
 		},

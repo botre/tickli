@@ -1,19 +1,16 @@
-# Tickli 📋✨
+# Tickli
 
-> A modern command line interface for TickTick task management
-
-## What is Tickli?
-
-Tickli is a powerful CLI tool that lets you manage your TickTick tasks and projects directly from your terminal. Stay productive without leaving your command line!
+A command line interface for TickTick task management.
 
 ## Features
 
-- 🚀 Create and manage tasks right from your terminal
-- 📂 Organize tasks into projects
-- 📅 Set dates, priorities, and tags
-- 🔄 Complete and uncomplete tasks
-- 🔍 Filter and search your tasks
-- 🔐 Secure OAuth authentication
+- Create and manage tasks from your terminal
+- Organize tasks into projects
+- Set dates, priorities, and tags
+- Complete and uncomplete tasks
+- Filter tasks by priority, tags, and due date
+- Machine-readable output (JSON, quiet mode) for scripting and automation
+- Secure OAuth authentication
 
 ## Installation
 
@@ -33,20 +30,20 @@ go install github.com/botre/tickli@latest
 ### 2. Authenticate
 
 ```bash
-# Initialize and authenticate with TickTick (you will be prompted for your Client ID and Secret)
+# Initialize and authenticate with TickTick
 tickli init
 
 # List available projects
 tickli project list
 
 # Switch to a project
-tickli project use "Work Tasks"
+tickli project use
 
 # Add a new task
-tickli task add "Finish documentation for project X"
+tickli task add "Finish documentation"
 
-# Add a high priority task due tomorrow
-tickli task add "Important meeting" --priority high --date "tomorrow at 2pm"
+# Add a high priority task
+tickli task add "Important meeting" -p high --date "tomorrow at 2pm"
 
 # List your tasks
 tickli task list
@@ -62,23 +59,29 @@ tickli task complete <task-id>
 | Command           | Description                              |
 | ----------------- | ---------------------------------------- |
 | `tickli init`     | Authenticate with TickTick via OAuth     |
-| `tickli reset`    | Reset authentication (use `--force` to skip confirmation) |
+| `tickli reset`    | Reset authentication (`-f` to skip confirmation) |
 | `tickli version`  | Show the current version                 |
 
 ### Tasks
 
-| Command                | Aliases             | Description                          |
-| ---------------------- | ------------------- | ------------------------------------ |
-| `tickli task create`   | `add`, `a`          | Create a new task                    |
-| `tickli task list`     | `ls`                | List and browse tasks interactively  |
-| `tickli task show`     | `info`, `get`       | View task details                    |
-| `tickli task update`   |                     | Modify a task's properties           |
-| `tickli task complete` |                     | Mark a task as done                  |
-| `tickli task delete`   | `rm`, `remove`      | Delete a task                        |
+| Command                    | Aliases             | Description                         |
+| -------------------------- | ------------------- | ----------------------------------- |
+| `tickli task create`       | `add`, `a`          | Create a new task                   |
+| `tickli task list`         | `ls`                | List and filter tasks               |
+| `tickli task show`         | `info`, `get`       | View task details                   |
+| `tickli task update`       |                     | Modify a task                       |
+| `tickli task complete`     |                     | Mark a task as done                 |
+| `tickli task uncomplete`   |                     | Mark a completed task as active     |
+| `tickli task delete`       | `rm`, `remove`      | Delete a task                       |
 
-Single-task commands (show, update, delete, complete) work with just a task ID. The `-P` flag is only needed for `list` and `create`.
+Single-task commands (show, update, delete, complete, uncomplete) only need a task ID. The `-P` flag is only needed for `list` and `create`.
 
-Common flags: `-t` title, `-c` content, `-p` priority (none/low/medium/high), `--date`/`--start`/`--due` for dates, `--tags`, `-o json` for machine-readable output, `-i` for interactive mode.
+Common task flags:
+- `-t` title, `-c` content
+- `-p` priority (`none`, `low`, `medium`, `high`)
+- `--date`, `--start-date` for dates, `--timezone` for timezone
+- `--tags` for tags
+- `--due` filter on list (`today`, `tomorrow`, `this-week`, `overdue`)
 
 ### Projects
 
@@ -88,8 +91,45 @@ Common flags: `-t` title, `-c` content, `-p` priority (none/low/medium/high), `-
 | `tickli project show`    | `info`, `get` | View project details            |
 | `tickli project create`  |               | Create a new project            |
 | `tickli project use`     |               | Switch active project context   |
-| `tickli project update`  |               | Modify a project's properties   |
+| `tickli project update`  |               | Modify a project                |
 | `tickli project delete`  | `rm`          | Delete a project                |
+
+### Global Flags
+
+| Flag              | Short | Description                            |
+| ----------------- | ----- | -------------------------------------- |
+| `--json`          |       | Output in JSON format (shorthand for `-o json`) |
+| `--quiet`         | `-q`  | Only print IDs (useful for piping)     |
+| `--no-color`      |       | Disable color output                   |
+| `-o`, `--output`  |       | Output format: `simple`, `json`        |
+
+### Scripting
+
+Tickli is designed to work well in scripts and with other tools:
+
+```bash
+# Create a task and capture its ID
+TASK_ID=$(tickli task create -t "Review PR" -P inbox -q)
+
+# Complete it
+tickli task complete "$TASK_ID"
+
+# List task IDs for a project
+tickli task list -q
+
+# Get task details as JSON
+tickli task show <task-id> --json
+```
+
+### Exit Codes
+
+| Code | Meaning         |
+| ---- | --------------- |
+| 0    | Success         |
+| 1    | General error   |
+| 2    | Usage error     |
+| 3    | Not found       |
+| 4    | Auth error      |
 
 ## Configuration
 

@@ -94,13 +94,16 @@ Changes only the properties you specify - others remain unchanged.`,
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to update project %s", opts.projectID))
 			}
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				jsonData, err := json.MarshalIndent(p, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
-			} else {
+			case types.OutputQuiet:
+				fmt.Println(p.ID)
+			default:
 				fmt.Printf("Project %s updated successfully\n", p.ID)
 				fmt.Println(utils.GetProjectDescription(p))
 			}

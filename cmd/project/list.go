@@ -57,26 +57,29 @@ then displays a fuzzy-search selector to choose a project.`,
 				return err
 			}
 
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				jsonData, err := json.MarshalIndent(projects, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
-				return nil
+			case types.OutputQuiet:
+				for _, p := range projects {
+					fmt.Println(p.ID)
+				}
+			default:
+				project, err := utils.FuzzySelectProject(projects, "")
+				if err != nil {
+					return errors.Wrap(err, "failed to select project")
+				}
+				fmt.Println(fmt.Sprintf("(%s) %s", project.ID, project.Name))
 			}
-
-			project, err := utils.FuzzySelectProject(projects, "")
-			if err != nil {
-				return errors.Wrap(err, "failed to select project")
-			}
-
-			fmt.Println(fmt.Sprintf("(%s) %s", project.ID, project.Name))
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.filter, "filter", "f", "", "Only show projects with names containing the provided text")
+	cmd.Flags().StringVar(&opts.filter, "filter", "", "Only show projects with names containing the provided text")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
 	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 

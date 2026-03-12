@@ -82,13 +82,16 @@ supports both direct parameter input and interactive mode.`,
 				return errors.Wrap(err, fmt.Sprintf("failed to create project %s", p.Name))
 			}
 
-			if opts.output == types.OutputJSON {
+			switch resolveOutput(cmd, opts.output) {
+			case types.OutputJSON:
 				jsonData, err := json.MarshalIndent(p, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
 				}
 				fmt.Println(string(jsonData))
-			} else {
+			case types.OutputQuiet:
+				fmt.Println(p.ID)
+			default:
 				fmt.Println(utils.GetProjectDescription(*p))
 				fmt.Println(p.ID)
 			}

@@ -5,6 +5,7 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/config"
+	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +21,7 @@ func NewTaskCommand() *cobra.Command {
 		Short: "Work with TickTick tasks",
 		Long: `Create, view, update, and manage tasks in your TickTick projects.
 
-Single-task commands (show, update, delete, complete) work with just a task ID.
+Single-task commands (show, update, delete, complete, uncomplete) work with just a task ID.
 The --project-id flag is only needed for list and create.`,
 		Example: `  # List all tasks in current project
   tickli task list
@@ -56,6 +57,12 @@ The --project-id flag is only needed for list and create.`,
 	RegisterProjectOverride(cmd)
 
 	return cmd
+}
+
+func resolveOutput(cmd *cobra.Command, output types.OutputFormat) types.OutputFormat {
+	jsonFlag, _ := cmd.Flags().GetBool("json")
+	quietFlag, _ := cmd.Flags().GetBool("quiet")
+	return types.ResolveOutput(output, jsonFlag, quietFlag)
 }
 
 func RegisterProjectOverride(cmd *cobra.Command) {
