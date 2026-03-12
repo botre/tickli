@@ -20,6 +20,8 @@ A command line interface for TickTick task management.
 go install github.com/botre/tickli@latest
 ```
 
+This installs the latest tagged version. If no tags exist, it falls back to the tip of the default branch.
+
 ## Quick Start
 
 ### 1. Create a TickTick App

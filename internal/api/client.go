@@ -251,6 +251,65 @@ func (c *Client) UpdateTask(task *types.Task) (*types.Task, error) {
 	return task, nil
 }
 
+// resolveInboxID returns the real inbox project ID.
+// The TickTick API uses "inbox" as an alias for some endpoints but not all.
+// This method discovers the real ID by creating and deleting a temporary task.
+func (c *Client) resolveInboxID() (string, error) {
+	tmp := &types.Task{
+		ProjectID: types.InboxProject.ID,
+		Title:     "_tickli_inbox_probe",
+	}
+	created, err := c.CreateTask(tmp)
+	if err != nil {
+		return "", errors.Wrap(err, "creating inbox probe task")
+	}
+	realID := created.ProjectID
+	// Clean up
+	_ = c.DeleteTask(created.ID)
+	return realID, nil
+}
+
+// MoveTask moves a task to a different project using the dedicated move endpoint.
+func (c *Client) MoveTask(taskID, fromProjectID, toProjectID string) error {
+	// The move endpoint doesn't accept "inbox" as a project ID alias,
+	// so we resolve it to the real ID when needed.
+	if fromProjectID == types.InboxProject.ID || toProjectID == types.InboxProject.ID {
+		realInboxID, err := c.resolveInboxID()
+		if err != nil {
+			return errors.Wrap(err, "resolving inbox ID")
+		}
+		if fromProjectID == types.InboxProject.ID {
+			fromProjectID = realInboxID
+		}
+		if toProjectID == types.InboxProject.ID {
+			toProjectID = realInboxID
+		}
+	}
+
+	type moveItem struct {
+		TaskID        string `json:"taskId"`
+		FromProjectID string `json:"fromProjectId"`
+		ToProjectID   string `json:"toProjectId"`
+	}
+
+	resp, err := c.http.R().
+		SetBody([]moveItem{{
+			TaskID:        taskID,
+			FromProjectID: fromProjectID,
+			ToProjectID:   toProjectID,
+		}}).
+		Post("/task/move")
+
+	if err != nil {
+		return errors.Wrap(err, "moving task")
+	}
+	if resp.IsError() {
+		return fmt.Errorf("failed to move task (status %d): %s", resp.StatusCode(), resp.String())
+	}
+
+	return nil
+}
+
 func (c *Client) UpdateProject(project types.Project) (types.Project, error) {
 	resp, err := c.http.R().
 		SetBody(project).

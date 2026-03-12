@@ -44,12 +44,11 @@ The target project can be specified by name or ID.`,
 				return fmt.Errorf("target project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", targetProject)
 			}
 
-			t.ProjectID = resolvedProject.ID
-
-			t, err = client.UpdateTask(t)
+			err = client.MoveTask(t.ID, t.ProjectID, resolvedProject.ID)
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to move task %s", taskID))
 			}
+			t.ProjectID = resolvedProject.ID
 
 			switch resolveOutput(cmd, output) {
 			case types.OutputJSON:

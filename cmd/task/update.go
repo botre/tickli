@@ -159,16 +159,23 @@ This command allows modifying title, content, priority, dates, and more.`,
 			if cmd.Flags().Changed("all-day") {
 				t.IsAllDay = opts.allDay
 			}
+			var movedToProject *types.Project
 			if cmd.Flags().Changed("move-to") {
 				resolvedProject, resolveErr := client.ResolveProject(opts.moveToProject)
 				if resolveErr != nil {
 					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.moveToProject)
 				}
-				t.ProjectID = resolvedProject.ID
+				movedToProject = &resolvedProject
 			}
 			t, err = client.UpdateTask(t)
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to update task %s", opts.taskID))
+			}
+			if movedToProject != nil {
+				if moveErr := client.MoveTask(t.ID, t.ProjectID, movedToProject.ID); moveErr != nil {
+					return errors.Wrap(moveErr, fmt.Sprintf("failed to move task %s", opts.taskID))
+				}
+				t.ProjectID = movedToProject.ID
 			}
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
