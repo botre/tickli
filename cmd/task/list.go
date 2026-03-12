@@ -185,8 +185,8 @@ tags, and due date. Results are displayed in an interactive selector.`,
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			colorChan := fetchProjectColorAsync(ctx, client, projectID)
-			taskChan := fetchAndFilterTasksAsync(ctx, client, projectID, opts)
+			colorChan := fetchProjectColorAsync(ctx, client, opts.projectID)
+			taskChan := fetchAndFilterTasksAsync(ctx, client, opts.projectID, opts)
 
 			// Wait for both operations to complete
 			var projectColor project.Color
