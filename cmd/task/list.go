@@ -141,7 +141,7 @@ func newListCommand(client *api.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "Browse and select from available tasks",
+		Short:   "List tasks",
 		Long: `Display tasks in the current project or a specified project.
     
 By default, only shows incomplete tasks. You can filter tasks by priority,

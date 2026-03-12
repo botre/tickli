@@ -26,7 +26,7 @@ func newShowCommand(client *api.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "show [project-id]",
 		Aliases: []string{"info", "get"},
-		Short:   "Show details of a project",
+		Short:   "Show a project",
 		Long: `Display detailed information about a specific project.
     
 If no project ID is provided, shows the currently active project.

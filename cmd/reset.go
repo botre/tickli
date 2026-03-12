@@ -20,7 +20,7 @@ func NewResetCommand() *cobra.Command {
 	opts := &resetOptions{}
 	cmd := &cobra.Command{
 		Use:   "reset",
-		Short: "Reset tickli authentication",
+		Short: "Reset authentication",
 		Long: `Reset tickli by removing the current access token and re-running the initialization process.
 This is useful if you need to reauthenticate with TickTick.`,
 		Run: func(cmd *cobra.Command, args []string) {

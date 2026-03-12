@@ -21,7 +21,7 @@ func newCompleteCmd(client *api.Client) *cobra.Command {
 	opts := &completeOptions{}
 	cmd := &cobra.Command{
 		Use:   "complete <task-id>",
-		Short: "Mark a task as completed",
+		Short: "Complete a task",
 		Long: `Change a task's status to completed.
 
 Takes a task ID and marks it as done. The task remains in the system

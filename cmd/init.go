@@ -53,7 +53,7 @@ var (
 func NewInitCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialize tickli and obtain an access token",
+		Short: "Initialize tickli",
 		Long: `Initialize tickli by performing OAuth authentication with TickTick.
 This will open your browser for authentication and store the access token securely.`,
 		PreRun: func(cmd *cobra.Command, args []string) {

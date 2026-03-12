@@ -28,7 +28,7 @@ func newUpdateProjectCommand(client *api.Client) *cobra.Command {
 	opts := &updateProjectOptions{}
 	cmd := &cobra.Command{
 		Use:   "update <project-id>",
-		Short: "Update an existing project's properties",
+		Short: "Update a project",
 		Long: `Modify the properties of an existing project.
     
 You can update a project's name, color, view mode, or kind.

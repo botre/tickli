@@ -22,7 +22,7 @@ func newUncompleteCommand(client *api.Client) *cobra.Command {
 	opts := &uncompleteOptions{}
 	cmd := &cobra.Command{
 		Use:   "uncomplete <task-id>",
-		Short: "Mark a completed task as active again",
+		Short: "Uncomplete a task",
 		Long: `Change a task's status from completed back to active.
 
 Reactivates tasks that were previously completed.`,

@@ -18,7 +18,7 @@ func NewProjectCommand() *cobra.Command {
 	var client api.Client
 	cmd := &cobra.Command{
 		Use:     "project",
-		Short:   "Work with TickTick projects.",
+		Short:   "Work with TickTick projects",
 		Aliases: []string{"list"},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			client = utils.LoadClient()

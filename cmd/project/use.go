@@ -46,7 +46,7 @@ func newUseProjectCmd(client *api.Client) *cobra.Command {
 	opts := &useProjectOptions{}
 	cmd := &cobra.Command{
 		Use:   "use",
-		Short: "Switch active project context",
+		Short: "Set the active project",
 		Long: `Switch the active project context for subsequent commands.
 
 Without arguments, opens an interactive selector. With a project ID argument,

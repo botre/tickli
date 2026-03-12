@@ -25,7 +25,7 @@ func newShowCommand(client *api.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "show <task-id>",
 		Aliases: []string{"info", "get"},
-		Short:   "Display detailed information about a task",
+		Short:   "Show a task",
 		Long: `Show complete information about a specific task identified by its ID.
     
 Displays title, content, dates, priority, tags, and other properties.

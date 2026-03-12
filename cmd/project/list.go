@@ -36,7 +36,7 @@ func newListCommand(client *api.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List and select from available projects",
+		Short:   "List projects",
 		Long: `Display all available projects and allow selection of one.
 
 This command shows all projects matching the optional filter criteria,

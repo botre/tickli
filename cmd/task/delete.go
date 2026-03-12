@@ -23,7 +23,7 @@ func newDeleteCommand(client *api.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete <task-id>",
 		Aliases: []string{"rm", "remove"},
-		Short:   "Remove a task permanently",
+		Short:   "Delete a task",
 		Long: `Delete a task completely from your TickTick account.
 
 This operation cannot be undone. By default, you will be asked to confirm

@@ -46,7 +46,7 @@ func newUpdateCommand(client *api.Client) *cobra.Command {
 	opts := &updateOptions{}
 	cmd := &cobra.Command{
 		Use:   "update <task-id>",
-		Short: "Modify an existing task's properties",
+		Short: "Update a task",
 		Long: `Update any property of an existing task identified by its ID.
     
 Changes only the properties you specify - others remain unchanged.

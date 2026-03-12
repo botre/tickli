@@ -22,7 +22,7 @@ func newDeleteCommand(client *api.Client) *cobra.Command {
 	opts := deleteOptions{}
 	cmd := &cobra.Command{
 		Use:   "delete <project-id>",
-		Short: "Delete an existing project",
+		Short: "Delete a project",
 		Long: `Permanently delete a project by its ID.
 
 This operation cannot be undone. By default, you will be asked to confirm
