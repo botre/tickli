@@ -19,22 +19,9 @@ Tickli is a powerful CLI tool that lets you manage your TickTick tasks and proje
 
 ## Installation
 
-### Using Homebrew
-
-```bash
-brew tap sho0pi/homebrew-tap
-brew install tickli
-```
-
-### Using Go
-
 ```bash
 go install github.com/botre/tickli@latest
 ```
-
-### Download from Releases
-
-You can also download prebuilt binaries from the [GitHub releases page](https://github.com/Sho0pi/tickli/releases).
 
 ## Quick Start
 
