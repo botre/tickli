@@ -2,13 +2,16 @@ package task
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 type createOptions struct {
@@ -64,6 +67,35 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 			opts.projectID = projectID
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if opts.interactive {
+				opts.title = prompt.String("Title", opts.title)
+				if opts.title == "" {
+					return fmt.Errorf("title is required")
+				}
+				opts.content = prompt.String("Content", opts.content)
+
+				priorities := []string{"none", "low", "medium", "high"}
+				idx, err := prompt.Select("Priority:", priorities)
+				if err == nil {
+					_ = opts.priority.Set(priorities[idx])
+				}
+
+				dateInput := prompt.String("Date (e.g. 'tomorrow 2pm')", "")
+				if dateInput != "" {
+					opts.date = dateInput
+				}
+
+				tagsInput := prompt.String("Tags (comma-separated)", "")
+				if tagsInput != "" {
+					for _, tag := range strings.Split(tagsInput, ",") {
+						tag = strings.TrimSpace(tag)
+						if tag != "" {
+							opts.tags = append(opts.tags, tag)
+						}
+					}
+				}
+			}
+
 			t := &types.Task{
 				ProjectID: opts.projectID,
 				Title:     opts.title,
@@ -114,8 +146,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Title of the task (required)")
-	cmd.MarkFlagRequired("title")
+	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Title of the task (required unless -i)")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Additional details about the task")
 	cmd.Flags().StringVarP(&opts.description, "desc", "d", "", "Description (for checklist)")
 	cmd.Flags().MarkDeprecated("desc", "please use --content")
@@ -135,6 +166,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high (default: none)")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Create task by answering prompts")
+	cmd.MarkFlagsOneRequired("title", "interactive")
 
 	return cmd
 }

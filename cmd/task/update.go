@@ -2,15 +2,18 @@ package task
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
+	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 type updateOptions struct {
@@ -69,6 +72,50 @@ This command allows modifying title, content, priority, dates, and more.`,
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to get task with ID %s", opts.taskID))
 			}
+
+			if opts.interactive {
+				newTitle := prompt.String("Title", t.Title)
+				if newTitle != t.Title {
+					t.Title = newTitle
+				}
+				newContent := prompt.String("Content", t.Content)
+				if newContent != t.Content {
+					t.Content = newContent
+				}
+
+				priorities := []string{"none", "low", "medium", "high"}
+				idx, selectErr := prompt.Select("Priority:", priorities)
+				if selectErr == nil {
+					var p task.Priority
+					_ = p.Set(priorities[idx])
+					t.Priority = p
+				}
+
+				tagsInput := prompt.String("Tags (comma-separated)", strings.Join(t.Tags, ", "))
+				if tagsInput != "" {
+					var tags []string
+					for _, tag := range strings.Split(tagsInput, ",") {
+						tag = strings.TrimSpace(tag)
+						if tag != "" {
+							tags = append(tags, tag)
+						}
+					}
+					t.Tags = tags
+				} else {
+					t.Tags = nil
+				}
+
+				dateInput := prompt.String("Date (e.g. 'tomorrow 2pm')", "")
+				if dateInput != "" {
+					r, parseErr := utils.ParseTimeExpression(dateInput)
+					if parseErr == nil {
+						t.StartDate = types.TickTickTime(r.Start())
+						t.DueDate = types.TickTickTime(r.End())
+						t.IsAllDay = r.IsAllDay()
+					}
+				}
+			}
+
 			if cmd.Flags().Changed("title") {
 				t.Title = opts.title
 			}

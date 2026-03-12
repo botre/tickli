@@ -2,8 +2,6 @@
 
 > A modern command line interface for TickTick task management
 
-![Tickli Demo](assets/tickli-demo.gif)
-
 ## What is Tickli?
 
 Tickli is a powerful CLI tool that lets you manage your TickTick tasks and projects directly from your terminal. Stay productive without leaving your command line!
@@ -112,23 +110,6 @@ You can set the default project interactively with `tickli project use`.
 
 To log out, run `tickli reset` — this removes the access token and re-runs authentication.
 
-## Interactive TUI Experience (Coming Soon!)
-
-![Tickli TUI Demo](assets/tickli-tui-demo.gif)
-
-## Roadmap 🗺️
-
-- [x] Basic task management
-- [x] Project management
-- [x] Authentication
-- [x] Advanced date/time handling and timezone support
-- [ ] Interactive modes for all commands
-- [ ] Subtask management
-- [ ] TUI interface with bubbletea
-- [ ] Task filtering by multiple criteria
-- [ ] Offline mode and syncing
-- [ ] Custom views (Kanban, etc.)
-
 ## Documentation
 
 For complete documentation on all available commands:
@@ -136,8 +117,6 @@ For complete documentation on all available commands:
 ```bash
 tickli --help
 ```
-
-Or check out the [full documentation](docs/README.md).
 
 ## Contributing
 
