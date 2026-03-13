@@ -53,7 +53,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
   tickli task create -t "Buy groceries"
   
   # Create a task with priority and due date
-  tickli task create -t "Submit report" -p high --due "tomorrow 5pm"
+  tickli task create -t "Submit report" -p high --due "2025-03-14"
   
   # Create a task in a specific project (by ID)
   tickli task create -t "Call client" --project abc123def456
@@ -181,11 +181,10 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Title of the task (required unless -i)")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Additional details about the task")
 	cmd.Flags().BoolVar(&opts.allDay, "all-day", false, "Set as an all-day task without specific time (use --all-day=false to unset)")
-	cmd.Flags().StringVar(&opts.startDate, "start", "", "When the task begins (ISO 8601, e.g. '2025-02-18T15:04:05+01:00')")
-	cmd.Flags().StringVar(&opts.dueDate, "due", "", "When the task is due (ISO 8601, e.g. '2025-02-18T18:00:00+01:00')")
+	cmd.Flags().StringVar(&opts.startDate, "start", "", "When the task begins (e.g. 'tomorrow', '2025-02-18', or ISO 8601)")
+	cmd.Flags().StringVar(&opts.dueDate, "due", "", "When the task is due (e.g. 'friday', '2025-02-18', or ISO 8601)")
 	cmd.Flags().StringVar(&opts.date, "date", "", "Set date with natural language (e.g., 'today', 'next week')")
 
-	cmd.MarkFlagsMutuallyExclusive("date", "all-day")
 	cmd.MarkFlagsMutuallyExclusive("date", "start")
 	cmd.MarkFlagsMutuallyExclusive("date", "due")
 

@@ -53,7 +53,7 @@ func NewTickliCommand() *cobra.Command {
 		Long: `tickli is a CLI tool that helps you manage your TickTick tasks from the command line.
 Complete documentation is available at https://github.com/botre/tickli`,
 		SilenceErrors: true,
-		SilenceUsage:  false,
+		SilenceUsage:  true,
 	}
 	cmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
 	cmd.PersistentFlags().BoolVar(&JSONOutput, "json", false, "Output in JSON format (overrides per-command -o)")

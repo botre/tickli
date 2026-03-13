@@ -39,7 +39,11 @@ func TruncateToDate(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 }
 
-// ParseFlexibleTime parses ISO 8601 timestamps, accepting both +00:00 and +0000 offset formats.
+// ParseFlexibleTime parses time values in multiple formats:
+// - ISO 8601 with timezone (e.g. 2025-02-18T15:04:05+02:00)
+// - ISO 8601 with compact offset (e.g. 2025-02-18T15:04:05+0200)
+// - Plain date (e.g. 2025-02-18) — treated as midnight local time
+// - Natural language (e.g. "tomorrow", "next friday 5pm") — returns start of the parsed range
 func ParseFlexibleTime(value string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC3339, value); err == nil {
 		return t, nil
@@ -47,5 +51,11 @@ func ParseFlexibleTime(value string) (time.Time, error) {
 	if t, err := time.Parse("2006-01-02T15:04:05-0700", value); err == nil {
 		return t, nil
 	}
-	return time.Time{}, fmt.Errorf("invalid time format %q: expected ISO 8601 (e.g. 2025-02-18T15:04:05Z or 2025-02-18T15:04:05+02:00)", value)
+	if t, err := time.ParseInLocation("2006-01-02", value, time.Local); err == nil {
+		return t, nil
+	}
+	if r, err := ParseTimeExpression(value); err == nil {
+		return r.Start(), nil
+	}
+	return time.Time{}, fmt.Errorf("invalid time format %q: expected ISO 8601 (e.g. 2025-02-18T15:04:05Z), plain date (e.g. 2025-02-18), or natural language (e.g. 'tomorrow')", value)
 }
