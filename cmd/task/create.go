@@ -55,8 +55,8 @@ and tags. At minimum, a title is required unless using interactive mode.`,
   # Create a task with priority and due date
   tickli task create -t "Submit report" -p high --due "2025-03-14"
   
-  # Create a task in a specific project (by ID)
-  tickli task create -t "Call client" --project abc123def456
+  # Create a task in a specific project (by name or ID)
+  tickli task create -t "Call client" --project Chores
   
   # Create a task with content and tags
   tickli task create -t "Team meeting" -c "Discuss Q3 roadmap" --tag meeting,work
@@ -72,9 +72,9 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				return fmt.Errorf("no project selected. Use -P <project> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
 			}
 
-			resolvedProject, err := client.GetProject(opts.projectID)
+			resolvedProject, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+				return err
 			}
 			opts.projectID = resolvedProject.ID
 
@@ -181,9 +181,9 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Title of the task (required unless -i)")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Additional details about the task")
 	cmd.Flags().BoolVar(&opts.allDay, "all-day", false, "Set as an all-day task without specific time (use --all-day=false to unset)")
-	cmd.Flags().StringVar(&opts.startDate, "start", "", "When the task begins (e.g. 'tomorrow', '2025-02-18', or ISO 8601)")
-	cmd.Flags().StringVar(&opts.dueDate, "due", "", "When the task is due (e.g. 'friday', '2025-02-18', or ISO 8601)")
-	cmd.Flags().StringVar(&opts.date, "date", "", "Set date with natural language (e.g., 'today', 'next week')")
+	cmd.Flags().StringVar(&opts.startDate, "start", "", "Start date/time (e.g. 'tomorrow', '2025-02-18'). Use with --due for ranges")
+	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Deadline (e.g. 'friday', '2025-02-18'). Use with --start for ranges")
+	cmd.Flags().StringVar(&opts.date, "date", "", "Set start+due together via natural language (e.g. 'today', 'tomorrow 2pm'). Cannot combine with --start/--due")
 
 	cmd.MarkFlagsMutuallyExclusive("date", "start")
 	cmd.MarkFlagsMutuallyExclusive("date", "due")

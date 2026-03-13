@@ -31,8 +31,8 @@ switches directly. The selected project becomes the default for future commands.
 		Example: `  # Interactive project selection
   tickli project use
 
-  # Switch by project ID
-  tickli project use abc123def456`,
+  # Switch by project name or ID
+  tickli project use Chores`,
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completion.ProjectIDs(),
 		PreRun: func(cmd *cobra.Command, args []string) {
@@ -49,9 +49,9 @@ switches directly. The selected project becomes the default for future commands.
 			var selectedProject types.Project
 
 			if opts.projectID != "" {
-				project, err := client.GetProject(opts.projectID)
+				project, err := client.ResolveProject(opts.projectID)
 				if err != nil {
-					return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+					return err
 				}
 				selectedProject = project
 			} else {

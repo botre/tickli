@@ -71,7 +71,7 @@ func resolveOutput(cmd *cobra.Command, output types.OutputFormat) types.OutputFo
 }
 
 func RegisterProjectOverride(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&projectID, "project", "P", "", "Project context for list and create commands (ID)")
+	cmd.PersistentFlags().StringVarP(&projectID, "project", "P", "", "Project for list and create commands (name or ID)")
 
 	_ = cmd.RegisterFlagCompletionFunc("project", completion.ProjectIDs())
 }

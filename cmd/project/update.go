@@ -47,9 +47,9 @@ Changes only the properties you specify - others remain unchanged.`,
 			opts.projectID = args[0]
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := client.GetProject(opts.projectID)
+			p, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+				return err
 			}
 
 			if opts.interactive {

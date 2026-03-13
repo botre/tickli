@@ -70,6 +70,7 @@ func ProjectCompletions(projects []types.Project, toComplete string) []cobra.Com
 	var completions []cobra.Completion
 	for _, project := range projects {
 		completions = append(completions, cobra.CompletionWithDesc(project.ID, project.Name))
+		completions = append(completions, cobra.CompletionWithDesc(project.Name, "name: "+project.Name))
 	}
 	return completions
 }
