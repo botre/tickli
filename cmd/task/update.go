@@ -50,7 +50,7 @@ func newUpdateCommand(client *api.Client) *cobra.Command {
 		Short: "Update a task",
 		Long: `Update any property of an existing task identified by its ID.
 
-The task is found automatically across all projects — no --project flag needed.
+The task is found automatically across all projects; no --project flag needed.
 Changes only the properties you specify - others remain unchanged.`,
 		Example: `  # Update a task's title
   tickli task update abc123def456 -t "New title"

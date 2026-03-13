@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -207,12 +208,26 @@ func computeProjectTaskFields(tasks []projectTask) {
 }
 
 func printProjectTasksSimple(tasks []projectTask) {
+	if len(tasks) == 0 {
+		fmt.Fprintln(os.Stderr, "No tasks found")
+		return
+	}
 	for _, t := range tasks {
 		due := formatTime(t.DueDate)
 		if due == "" {
 			due = "no due date"
 		}
 		fmt.Printf("%s\t[%s]\t%s\t%s\t%s\n", t.ID, t.ProjectName, t.Title, t.Priority, due)
+	}
+}
+
+func printProjectTaskIDs(tasks []projectTask) {
+	if len(tasks) == 0 {
+		fmt.Fprintln(os.Stderr, "No tasks found")
+		return
+	}
+	for _, t := range tasks {
+		fmt.Println(t.ID)
 	}
 }
 

@@ -3,6 +3,7 @@ package project
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -66,6 +67,9 @@ then displays a fuzzy-search selector to choose a project.`,
 				}
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
+				if len(projects) == 0 {
+					fmt.Fprintln(os.Stderr, "No projects found")
+				}
 				for _, p := range projects {
 					fmt.Println(p.ID)
 				}

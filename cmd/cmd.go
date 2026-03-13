@@ -121,7 +121,6 @@ func Execute() {
 			code = ExitAuthError
 		}
 		fmt.Fprintln(os.Stderr, err)
-		log.Error().Err(err).Msg("Failed to execute command")
 		os.Exit(code)
 	}
 }

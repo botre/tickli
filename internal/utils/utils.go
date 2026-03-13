@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/ktr0731/go-fuzzyfinder"
@@ -85,6 +86,10 @@ Task Details:
 
 // PrintTasksSimple writes tab-separated task data to stdout for non-interactive use.
 func PrintTasksSimple(tasks []types.Task) {
+	if len(tasks) == 0 {
+		fmt.Fprintln(os.Stderr, "No tasks found")
+		return
+	}
 	for _, t := range tasks {
 		var due string
 		if d := time.Time(t.DueDate); !d.IsZero() {
@@ -98,6 +103,10 @@ func PrintTasksSimple(tasks []types.Task) {
 
 // PrintProjectsSimple writes tab-separated project data to stdout for non-interactive use.
 func PrintProjectsSimple(projects []types.Project) {
+	if len(projects) == 0 {
+		fmt.Fprintln(os.Stderr, "No projects found")
+		return
+	}
 	for _, p := range projects {
 		fmt.Printf("%s\t%s\n", p.ID, p.Name)
 	}
@@ -132,6 +141,9 @@ func FuzzySelectProject(projects []types.Project, query string) (types.Project, 
 }
 
 func FuzzySelectTask(tasks []types.Task, projectColor project.Color, query string) (types.Task, error) {
+	if len(tasks) == 0 {
+		return types.Task{}, fmt.Errorf("no tasks found")
+	}
 	idx, err := fuzzyfinder.Find(
 		tasks,
 		func(i int) string {

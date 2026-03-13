@@ -27,7 +27,7 @@ func newDeleteCommand(client *api.Client) *cobra.Command {
 		Short:   "Delete a task",
 		Long: `Delete a task completely from your TickTick account.
 
-The task is found automatically across all projects — no --project flag needed.
+The task is found automatically across all projects; no --project flag needed.
 This operation cannot be undone. By default, you will be asked to confirm
 the deletion unless the --force flag is used or stdin is not a terminal.`,
 		Example: `  # Delete with confirmation prompt

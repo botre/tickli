@@ -18,6 +18,22 @@ const (
 	redirectURL = "http://localhost:8080"
 )
 
+// tickTickError represents a TickTick API error response.
+type tickTickError struct {
+	ErrorCode    string `json:"errorCode"`
+	ErrorMessage string `json:"errorMessage"`
+}
+
+// apiErrorMessage extracts a user-friendly message from a TickTick API error response.
+// Falls back to the raw body if the response cannot be parsed.
+func apiErrorMessage(body string) string {
+	var apiErr tickTickError
+	if err := json.Unmarshal([]byte(body), &apiErr); err == nil && apiErr.ErrorMessage != "" {
+		return apiErr.ErrorMessage
+	}
+	return body
+}
+
 type Client struct {
 	http *resty.Client
 }
@@ -73,7 +89,7 @@ func (c *Client) ListProjects() ([]types.Project, error) {
 	}
 
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to list projects: %s", resp.String())
+		return nil, fmt.Errorf("failed to list projects: %s", apiErrorMessage(resp.String()))
 	}
 
 	// Adds the default InboxProject - not appears by default
@@ -95,7 +111,7 @@ func (c *Client) GetProject(id string) (types.Project, error) {
 		return types.NullProject, errors.Wrap(err, "getting project")
 	}
 	if resp.IsError() {
-		return types.NullProject, fmt.Errorf("failed to get project: %s", resp.String())
+		return types.NullProject, fmt.Errorf("failed to get project: %s", apiErrorMessage(resp.String()))
 	}
 	if project == types.NullProject {
 		return types.NullProject, &cliErrors.NotFoundError{Message: fmt.Sprintf("project not found: %s", id)}
@@ -115,7 +131,7 @@ func (c *Client) getTaskFromProject(projectID, taskID string) (*types.Task, erro
 		return nil, errors.Wrap(err, "requesting task")
 	}
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to get task: %s", resp.String())
+		return nil, fmt.Errorf("failed to get task: %s", apiErrorMessage(resp.String()))
 	}
 	if task.ID == "" || task.Title == "" {
 		return nil, &cliErrors.NotFoundError{Message: fmt.Sprintf("task %s not found in project %s", taskID, projectID)}
@@ -162,7 +178,7 @@ func (c *Client) ListTasks(projectID string) ([]types.Task, error) {
 	}
 
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to list tasks: %s", resp.String())
+		return nil, fmt.Errorf("failed to list tasks: %s", apiErrorMessage(resp.String()))
 	}
 
 	return projectData.Tasks, nil
@@ -178,7 +194,7 @@ func (c *Client) GetProjectWithTasks(projectID string) (*types.ProjectData, erro
 		return nil, errors.Wrap(err, "getting project data")
 	}
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to get project data: %s", resp.String())
+		return nil, fmt.Errorf("failed to get project data: %s", apiErrorMessage(resp.String()))
 	}
 
 	// The API doesn't return project metadata for inbox, fill it in
@@ -203,7 +219,7 @@ func (c *Client) CreateTask(task *types.Task) (*types.Task, error) {
 		return nil, errors.Wrap(err, "creating task")
 	}
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to create task: %s", resp.String())
+		return nil, fmt.Errorf("failed to create task: %s", apiErrorMessage(resp.String()))
 	}
 
 	return task, nil
@@ -223,7 +239,7 @@ func (c *Client) UpdateTask(task *types.Task) (*types.Task, error) {
 		return nil, errors.Wrap(err, "updating task")
 	}
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to update task: %s", resp.String())
+		return nil, fmt.Errorf("failed to update task: %s", apiErrorMessage(resp.String()))
 	}
 
 	return task, nil
@@ -282,7 +298,7 @@ func (c *Client) MoveTask(taskID, fromProjectID, toProjectID string) error {
 		return errors.Wrap(err, "moving task")
 	}
 	if resp.IsError() {
-		return fmt.Errorf("failed to move task (status %d): %s", resp.StatusCode(), resp.String())
+		return fmt.Errorf("failed to move task (status %d): %s", resp.StatusCode(), apiErrorMessage(resp.String()))
 	}
 
 	return nil
@@ -298,7 +314,7 @@ func (c *Client) UpdateProject(project types.Project) (types.Project, error) {
 		return types.NullProject, errors.Wrap(err, "updating project")
 	}
 	if resp.IsError() {
-		return types.NullProject, fmt.Errorf("failed to update project: %s", resp.String())
+		return types.NullProject, fmt.Errorf("failed to update project: %s", apiErrorMessage(resp.String()))
 	}
 
 	return project, nil
@@ -317,7 +333,7 @@ func (c *Client) DeleteTask(taskID string) error {
 		return errors.Wrap(err, "deleting task")
 	}
 	if resp.IsError() {
-		return fmt.Errorf("failed to delete task: %s", resp.String())
+		return fmt.Errorf("failed to delete task: %s", apiErrorMessage(resp.String()))
 	}
 
 	return nil
@@ -336,7 +352,7 @@ func (c *Client) CompleteTask(taskID string) error {
 		return errors.Wrap(err, "completing task")
 	}
 	if resp.IsError() {
-		return fmt.Errorf("failed to complete task: %s", resp.String())
+		return fmt.Errorf("failed to complete task: %s", apiErrorMessage(resp.String()))
 	}
 
 	return nil
@@ -356,7 +372,7 @@ func (c *Client) CreateProject(project *types.Project) (*types.Project, error) {
 		return nil, errors.Wrap(err, "creating project")
 	}
 	if resp.IsError() {
-		return nil, fmt.Errorf("failed to create project: %s", resp.String())
+		return nil, fmt.Errorf("failed to create project: %s", apiErrorMessage(resp.String()))
 	}
 
 	return project, nil
@@ -370,7 +386,7 @@ func (c *Client) DeleteProject(projectID string) error {
 		return errors.Wrap(err, "deleting project")
 	}
 	if resp.IsError() {
-		return fmt.Errorf("failed to delete project: %s", resp.String())
+		return fmt.Errorf("failed to delete project: %s", apiErrorMessage(resp.String()))
 	}
 
 	return nil

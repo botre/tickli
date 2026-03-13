@@ -23,7 +23,7 @@ func newMoveCommand(client *api.Client) *cobra.Command {
 		Short: "Move a task to a different project",
 		Long: `Move a task from its current project to a different one.
 
-The task is found automatically across all projects — no --project flag needed.
+The task is found automatically across all projects; no --project flag needed.
 The --to flag specifying the target project ID is required.`,
 		Example: `  # Move a task to another project
   tickli task move abc123def456 --to def789abc012`,

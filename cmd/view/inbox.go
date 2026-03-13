@@ -64,9 +64,7 @@ This is a shorthand for 'tickli task list --project inbox'.`,
 				}
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
-				for _, t := range tasks {
-					fmt.Println(t.ID)
-				}
+				printProjectTaskIDs(tasks)
 			default:
 				if !isInteractive() {
 					printProjectTasksSimple(tasks)

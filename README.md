@@ -14,7 +14,7 @@ A command line interface for TickTick task management.
 - Interactive fuzzy-search selection for tasks and projects (auto-disabled when piped)
 - Three-tier output: human-readable, JSON, and quiet (IDs only) for scripting
 - Global `--json` and `--quiet` flags override per-command `-o` for wrapper scripts
-- Single-task commands auto-search all projects — no `--project` flag needed
+- Single-task commands auto-search all projects, so no `--project` flag is needed
 - Semantic exit codes (0–4) for reliable programmatic error handling
 - Shell completions for Bash, Zsh, and Fish (commands, flags, project/task IDs)
 - Respects `NO_COLOR` environment variable and `--no-color` flag
@@ -112,7 +112,7 @@ Smart view flags:
 | `tickli task move`         |                     | Move a task to a different project  |
 | `tickli task delete`       | `rm`, `remove`      | Delete a task                       |
 
-Single-task commands (show, update, delete, complete, uncomplete, move) only need a task ID — they search all projects automatically. The `--project`/`-P` flag is only needed for `list` and `create`.
+Single-task commands (show, update, delete, complete, uncomplete, move) only need a task ID; they search all projects automatically. The `--project`/`-P` flag is only needed for `list` and `create`.
 
 #### Task Flags
 
@@ -165,13 +165,21 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | ----------------- | ----- | -------------------------------------- |
 | `--json`          |       | Output in JSON format (overrides `-o`) |
 | `--quiet`         | `-q`  | Only print IDs (overrides `-o`)        |
-| `--output`        | `-o`  | Output format: `simple`, `json`, `quiet` |
+| `--output`        | `-o`  | Output format: `simple` or `json`        |
 | `--no-color`      |       | Disable color output (also respects `NO_COLOR` env) |
 | `--project`       | `-P`  | Project context for task list and create (ID)      |
 
-### Scripting
+## Scripting
 
-Tickli is designed to work well in scripts and with other tools:
+Tickli is designed to work well in scripts and with other tools.
+
+When piped or redirected, list commands output tab-separated columns:
+
+| Command         | Columns                                       |
+| --------------- | --------------------------------------------- |
+| Smart views     | `id`, `[project]`, `title`, `priority`, `due` |
+| `task list`     | `id`, `title`, `priority`, `due`              |
+| `project list`  | `id`, `name`                                  |
 
 ```bash
 # Create a task and capture its ID
@@ -205,7 +213,7 @@ tickli task update <task-id> --all-day=false
 tickli task create -t "Call" --start "2025-03-14T10:00:00+02:00" --due "2025-03-14T11:00:00+0200"
 
 # Non-interactive fallback: piped/redirected output auto-detects non-TTY
-echo "" | tickli today          # prints tab-separated rows instead of fuzzy selector
+tickli today | cat              # prints tab-separated rows instead of fuzzy selector
 tickli today | cut -f3          # extract just the title column
 
 # Duration field in JSON: computed from start/due when both are set
@@ -213,7 +221,7 @@ tickli task show <task-id> --json | jq .duration
 tickli today --json | jq '.[] | select(.duration)'
 ```
 
-### Exit Codes
+## Exit Codes
 
 | Code | Meaning         |
 | ---- | --------------- |
@@ -286,12 +294,4 @@ Tickli is built to serve two audiences equally: humans at a terminal and AI agen
 **`--help` is the spec.** Every command and flag carries a short, precise description. Usage examples are included for non-obvious patterns. Agents discover capabilities through `--help`, so it must be complete and parseable.
 
 **Semantic exit codes.** Exit codes distinguish between success (0), general errors (1), usage errors (2), not-found (3), and auth failures (4). Scripts can branch on the exit code without parsing stderr.
-
-## Documentation
-
-For complete documentation on all available commands:
-
-```bash
-tickli --help
-```
 
