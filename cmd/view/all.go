@@ -35,8 +35,9 @@ Completed tasks are excluded by default. Use --all to include them.`,
   tickli all -p high`,
 		Args: cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			client = utils.LoadClient()
-			return nil
+			var err error
+			client, err = utils.LoadClient()
+			return err
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			allTasks, err := fetchAllTasks(&client)

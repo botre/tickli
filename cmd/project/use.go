@@ -74,9 +74,9 @@ switches directly. The selected project becomes the default for future commands.
 			var selectedProject types.Project
 
 			if opts.projectID != "" {
-				project, err := findProjectByID(projects, opts.projectID)
+				project, err := client.ResolveProject(opts.projectID)
 				if err != nil {
-					return err
+					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
 				}
 				selectedProject = project
 			} else {
@@ -102,8 +102,7 @@ switches directly. The selected project becomes the default for future commands.
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
-				result := map[string]string{"id": selectedProject.ID, "name": selectedProject.Name}
-				jsonData, _ := json.MarshalIndent(result, "", "  ")
+				jsonData, _ := json.MarshalIndent(selectedProject, "", "  ")
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
 				fmt.Println(selectedProject.ID)

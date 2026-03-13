@@ -56,22 +56,26 @@ func NewInitCommand() *cobra.Command {
 		Short: "Initialize tickli",
 		Long: `Initialize tickli by performing OAuth authentication with TickTick.
 This will open your browser for authentication and store the access token securely.`,
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if !ColorDisabled() {
 				fmt.Println(logo)
 			}
-			if token, err := config.LoadToken(); err != nil {
-				log.Fatal().Err(err).Msg("failed to check existing token")
-			} else if token != "" {
-				log.Fatal().Msg("tickli is already initialized. Used 'tickli reset' to reinitialize")
+			token, err := config.LoadToken()
+			if err != nil {
+				return fmt.Errorf("failed to check existing token: %w", err)
 			}
+			if token != "" {
+				return fmt.Errorf("tickli is already initialized. Use 'tickli reset' to reinitialize")
+			}
+			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			token, err := initTickli()
 			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to initialize tickli")
+				return fmt.Errorf("failed to initialize tickli: %w", err)
 			}
 			log.Info().Str("token", token).Msg("Successfully initialized tickli!")
+			return nil
 		},
 	}
 

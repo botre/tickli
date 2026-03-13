@@ -27,8 +27,9 @@ This is equivalent to TickTick's "Tomorrow" smart view.`,
   tickli tomorrow -o json`,
 		Args: cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			client = utils.LoadClient()
-			return nil
+			var err error
+			client, err = utils.LoadClient()
+			return err
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			allTasks, err := fetchAllTasks(&client)

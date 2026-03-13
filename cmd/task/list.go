@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
@@ -237,7 +236,7 @@ tags, and due date. Results are displayed in an interactive selector.`,
 				}
 				t, err := utils.FuzzySelectTask(filteredTasks, projectColor, "")
 				if err != nil {
-					log.Fatal().Err(err).Msg("failed to select task")
+					return fmt.Errorf("failed to select task: %w", err)
 				}
 				fmt.Println(utils.GetTaskDescription(t, projectColor))
 			}

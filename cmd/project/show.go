@@ -57,9 +57,14 @@ Can include associated tasks and switch between output formats.`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			resolvedProject, err := client.ResolveProject(opts.projectID)
+			if err != nil {
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
+			}
+
 			output := resolveOutput(cmd, opts.output)
 			if opts.withTasks {
-				projectData, err := client.GetProjectWithTasks(opts.projectID)
+				projectData, err := client.GetProjectWithTasks(resolvedProject.ID)
 				if err != nil {
 					return errors.Wrap(err, "failed to get project data")
 				}
@@ -79,10 +84,7 @@ Can include associated tasks and switch between output formats.`,
 					}
 				}
 			} else {
-				project, err := client.GetProject(opts.projectID)
-				if err != nil {
-					return errors.Wrap(err, fmt.Sprintf("failed to get project %q", opts.projectID))
-				}
+				project := resolvedProject
 				switch output {
 				case types.OutputJSON:
 					jsonData, err := json.MarshalIndent(project, "", "  ")

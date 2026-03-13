@@ -23,7 +23,7 @@ func NewResetCommand() *cobra.Command {
 		Short: "Reset authentication",
 		Long: `Reset tickli by removing the current access token and re-running the initialization process.
 This is useful if you need to reauthenticate with TickTick.`,
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if !opts.force && prompt.IsInteractive() {
 				fmt.Printf("Are you sure you want to reset authentication? (y/N): ")
 				reader := bufio.NewReader(os.Stdin)
@@ -31,21 +31,21 @@ This is useful if you need to reauthenticate with TickTick.`,
 				confirm = strings.TrimSpace(confirm)
 				if confirm != "y" && confirm != "Y" {
 					fmt.Println("Reset aborted")
-					return
+					return nil
 				}
 			}
 
 			if err := config.DeleteToken(); err != nil {
-				log.Fatal().Err(err).Msg("Failed to remove access token")
+				return fmt.Errorf("failed to remove access token: %w", err)
 			}
 
 			log.Info().Msg("Successfully removed access token. Running initialization...")
 			token, err := initTickli()
 			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to initialize tickli")
+				return fmt.Errorf("failed to initialize tickli: %w", err)
 			}
 			log.Info().Str("token", token).Msg("Successfully initialized tickli")
-
+			return nil
 		},
 	}
 
