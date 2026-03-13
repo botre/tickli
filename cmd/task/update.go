@@ -59,7 +59,7 @@ Changes only the properties you specify - others remain unchanged.`,
   tickli task update abc123def456 -p high -c "Additional details here"
   
   # Change due date
-  tickli task update abc123def456 --due "next Friday 5pm"
+  tickli task update abc123def456 --due "2025-03-21"
   
   # Update interactively
   tickli task update abc123def456 -i`,
@@ -209,12 +209,11 @@ Changes only the properties you specify - others remain unchanged.`,
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Change the task title")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Change or add content/description")
 	cmd.Flags().BoolVar(&opts.allDay, "all-day", false, "Change to all-day task without specific time (use --all-day=false to unset)")
-	cmd.Flags().StringVar(&opts.startDate, "start", "", "Change when the task begins (ISO 8601, e.g. '2025-02-18T15:04:05+01:00')")
-	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Change when the task is due (ISO 8601, e.g. '2025-02-18T18:00:00+01:00')")
+	cmd.Flags().StringVar(&opts.startDate, "start", "", "Change when the task begins (e.g. 'tomorrow', '2025-02-18', or ISO 8601)")
+	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Change when the task is due (e.g. 'friday', '2025-02-18', or ISO 8601)")
 	cmd.Flags().StringVar(&opts.date, "date", "", "Set date with natural language (e.g., 'today', 'next week')")
 
 	cmd.MarkFlagsMutuallyExclusive("date", "start")
-	cmd.MarkFlagsMutuallyExclusive("date", "all-day")
 	cmd.MarkFlagsMutuallyExclusive("date", "due")
 
 	cmd.Flags().StringVar(&opts.timeZone, "timezone", "", "Change timezone for date calculations")

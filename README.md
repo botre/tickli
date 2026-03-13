@@ -122,8 +122,8 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | `--content`       | `-c`  | create, update   | Task content/description                           |
 | `--priority`      | `-p`  | create, update, list | Priority: `none`, `low`, `medium`, `high`      |
 | `--date`          |       | create, update   | Set date range with natural language               |
-| `--start`         |       | create, update   | Start date (ISO 8601)                              |
-| `--due`           |       | create, update   | Due date (ISO 8601)                                |
+| `--start`         |       | create, update   | Start date (natural language, plain date, or ISO 8601)  |
+| `--due`           |       | create, update   | Due date (natural language, plain date, or ISO 8601)    |
 | `--timezone`      |       | create, update   | Timezone for dates                                 |
 | `--tag`           |       | create, update, list | Comma-separated tags (create/update), filter by tag (list) |
 | `--all-day`       |       | create, update   | Set as all-day task (strips time; `=false` to unset)|
@@ -196,7 +196,7 @@ tickli today --json
 tickli today -p high --quiet | wc -l
 
 # Create an all-day task (no specific time)
-tickli task create -t "Team offsite" --all-day --due "2025-03-20T00:00:00Z"
+tickli task create -t "Team offsite" --all-day --due "2025-03-20"
 
 # Remove all-day status
 tickli task update <task-id> --all-day=false
@@ -271,7 +271,7 @@ Tickli is built to serve two audiences equally: humans at a terminal and AI agen
 
 **Flags should be unsurprising.** Each flag name has one meaning across the entire CLI. Where the same concept appears in multiple commands, the flag name and semantics match (e.g. `--to` works on both `move` and `update`). Short flags (`-a`, `-p`, `-t`) are never overloaded within the same command.
 
-**Flexible input, strict output.** Date parsing accepts both `+02:00` and `+0200` timezone offsets because producers vary. Output always uses a single canonical format. `--all-day` automatically strips time components rather than requiring the caller to zero them manually.
+**Flexible input, strict output.** Date parsing accepts plain dates (`2025-03-20`), full ISO 8601 timestamps, and both `+02:00` and `+0200` timezone offsets because producers vary. The `--date` flag also accepts natural language (`tomorrow`, `next week`). Output always uses a single canonical format. `--all-day` automatically strips time components rather than requiring the caller to zero them manually.
 
 **Don't hide the escape hatch.** Boolean flags like `--all-day` support explicit `=false` so that both setting and unsetting are scriptable without needing a separate `--no-all-day` flag.
 
