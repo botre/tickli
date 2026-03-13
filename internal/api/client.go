@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
@@ -105,28 +104,6 @@ func (c *Client) GetProject(id string) (types.Project, error) {
 	return project, nil
 }
 
-// ResolveProject finds a project by ID first, then by name if no ID match is found.
-func (c *Client) ResolveProject(idOrName string) (types.Project, error) {
-	// Try by ID first
-	p, err := c.GetProject(idOrName)
-	if err == nil {
-		return p, nil
-	}
-
-	// Try by name
-	projects, listErr := c.ListProjects()
-	if listErr != nil {
-		return types.NullProject, errors.Wrap(listErr, "listing projects for name lookup")
-	}
-
-	for _, proj := range projects {
-		if strings.EqualFold(proj.Name, idOrName) {
-			return proj, nil
-		}
-	}
-
-	return types.NullProject, &cliErrors.NotFoundError{Message: fmt.Sprintf("project %q not found by ID or name", idOrName)}
-}
 
 func (c *Client) getTaskFromProject(projectID, taskID string) (*types.Task, error) {
 	var task types.Task

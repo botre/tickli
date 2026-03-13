@@ -57,9 +57,9 @@ Can include associated tasks and switch between output formats.`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			resolvedProject, err := client.ResolveProject(opts.projectID)
+			resolvedProject, err := client.GetProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+				return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 
 			output := resolveOutput(cmd, opts.output)

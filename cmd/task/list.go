@@ -158,8 +158,8 @@ tags, and due date. Results are displayed in an interactive selector.`,
   # List high priority tasks
   tickli task list -p high
   
-  # List tasks in specific project (by ID or name)
-  tickli task list --project Work`,
+  # List tasks in specific project (by ID)
+  tickli task list --project abc123def456`,
 		Args: cobra.NoArgs,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			opts.projectID = projectID
@@ -176,9 +176,9 @@ tags, and due date. Results are displayed in an interactive selector.`,
 				return fmt.Errorf("no project selected. Use -P <project> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
 			}
 
-			resolvedProject, err := client.ResolveProject(opts.projectID)
+			resolvedProject, err := client.GetProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+				return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 			opts.projectID = resolvedProject.ID
 

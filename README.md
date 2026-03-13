@@ -14,7 +14,6 @@ A command line interface for TickTick task management.
 - Interactive fuzzy-search selection for tasks and projects (auto-disabled when piped)
 - Three-tier output: human-readable, JSON, and quiet (IDs only) for scripting
 - Global `--json` and `--quiet` flags override per-command `-o` for wrapper scripts
-- Projects addressable by name or ID everywhere
 - Single-task commands auto-search all projects — no `--project` flag needed
 - Semantic exit codes (0–4) for reliable programmatic error handling
 - Shell completions for Bash, Zsh, and Fish (commands, flags, project/task IDs)
@@ -113,7 +112,7 @@ Smart view flags:
 | `tickli task move`         |                     | Move a task to a different project  |
 | `tickli task delete`       | `rm`, `remove`      | Delete a task                       |
 
-Single-task commands (show, update, delete, complete, uncomplete, move) only need a task ID — they search all projects automatically. The `--project`/`-P` flag is only needed for `list` and `create` (accepts ID or name).
+Single-task commands (show, update, delete, complete, uncomplete, move) only need a task ID — they search all projects automatically. The `--project`/`-P` flag is only needed for `list` and `create`.
 
 #### Task Flags
 
@@ -131,7 +130,7 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | `--due-within`    |       | list             | Filter: `today`, `tomorrow`, `this-week`, `overdue`|
 | `--all`           | `-a`  | list             | Include completed tasks                            |
 | `--verbose`       | `-v`  | list             | Show more details                                  |
-| `--to`            |       | move, update     | Target project for move (name or ID; required on move) |
+| `--to`            |       | move, update     | Target project ID for move (required on move)      |
 | `--move-to`       |       | update           | Alias for `--to`                                   |
 | `--force`         | `-f`  | delete           | Skip confirmation prompt                           |
 | `--interactive`   | `-i`  | create, update   | Use interactive prompts                            |
@@ -168,7 +167,7 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | `--quiet`         | `-q`  | Only print IDs (overrides `-o`)        |
 | `--output`        | `-o`  | Output format: `simple`, `json`, `quiet` |
 | `--no-color`      |       | Disable color output (also respects `NO_COLOR` env) |
-| `--project`       | `-P`  | Project context for task list and create (ID or name) |
+| `--project`       | `-P`  | Project context for task list and create (ID)      |
 
 ### Scripting
 
@@ -176,7 +175,7 @@ Tickli is designed to work well in scripts and with other tools:
 
 ```bash
 # Create a task and capture its ID
-TASK_ID=$(tickli task create --title "Review PR" --project inbox --quiet)
+TASK_ID=$(tickli task create --title "Review PR" --quiet)
 
 # Complete it
 tickli task complete "$TASK_ID"
@@ -188,7 +187,7 @@ tickli task list --quiet
 tickli task show <task-id> --json
 
 # Delete a task in one line
-tickli task delete $(tickli task create --title "temp" --project inbox --quiet) --force
+tickli task delete $(tickli task create --title "temp" --quiet) --force
 
 # Get today's tasks as JSON
 tickli today --json
@@ -230,7 +229,7 @@ Tickli stores its configuration at `~/.config/tickli/config.yaml` (following the
 
 | Key                     | Type   | Default     | Description                                      |
 | ----------------------- | ------ | ----------- | ------------------------------------------------ |
-| `default_project`       | string | `"inbox"`   | Default project used when no project is specified (ID or name) |
+| `default_project`       | string | `"inbox"`   | Default project used when no project is specified  |
 | `default_project_color` | string | `""`        | Default color for newly created projects         |
 
 You can set the default project with `tickli project use`.
@@ -276,9 +275,7 @@ Tickli is built to serve two audiences equally: humans at a terminal and AI agen
 
 **Don't hide the escape hatch.** Boolean flags like `--all-day` support explicit `=false` so that both setting and unsetting are scriptable without needing a separate `--no-all-day` flag.
 
-**Minimal context required.** Single-entity commands — whether for tasks (`show`, `update`, `delete`, `complete`, `uncomplete`, `move`) or projects (`show`, `update`, `delete`) — only need an ID or name. Task commands search all projects automatically. The `--project` flag is only required for `task list` and `task create`, where a scope is genuinely ambiguous. Smart views (`today`, `tomorrow`, `week`, `inbox`, `all`) require no arguments at all.
-
-**Name or ID, your choice.** Projects can be referenced by ID or name wherever a project argument is accepted (`--project`, `--to`, positional args). Resolution tries ID first, then falls back to case-insensitive name matching.
+**Minimal context required.** Single-entity commands — whether for tasks (`show`, `update`, `delete`, `complete`, `uncomplete`, `move`) or projects (`show`, `update`, `delete`) — only need an ID. Task commands search all projects automatically. The `--project` flag is only required for `task list` and `task create`, where a scope is genuinely ambiguous. Smart views (`today`, `tomorrow`, `week`, `inbox`, `all`) require no arguments at all.
 
 **Three-tier output with override hierarchy.** Output comes in three formats: `simple` (human-readable), `json` (machine-readable), and `quiet` (IDs only, for piping). The persistent `--json` and `--quiet` flags override the per-command `-o` flag, so a wrapper script can force JSON globally without modifying individual commands.
 

@@ -3,7 +3,6 @@ package project
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
@@ -14,29 +13,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
-
-func findProjectByID(projects []types.Project, id string) (types.Project, error) {
-	for i := range projects {
-		if projects[i].ID == id {
-			return projects[i], nil
-		}
-	}
-	return types.Project{}, fmt.Errorf("project not found with ID '%s'", id)
-}
-
-func findProjectsByName(projects []*types.Project, name string) ([]*types.Project, error) {
-	var matched []*types.Project
-	nameLower := strings.ToLower(name)
-	for i := range projects {
-		if strings.Contains(strings.ToLower(projects[i].Name), nameLower) {
-			matched = append(matched, projects[i])
-		}
-	}
-	if len(matched) == 0 {
-		return nil, fmt.Errorf("no project found with name '%s'", name)
-	}
-	return matched, nil
-}
 
 type useProjectOptions struct {
 	projectID string
@@ -55,9 +31,8 @@ switches directly. The selected project becomes the default for future commands.
 		Example: `  # Interactive project selection
   tickli project use
 
-  # Switch by project ID or name
-  tickli project use abc123def456
-  tickli project use "My Project"`,
+  # Switch by project ID
+  tickli project use abc123def456`,
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completion.ProjectIDs(),
 		PreRun: func(cmd *cobra.Command, args []string) {
@@ -74,9 +49,9 @@ switches directly. The selected project becomes the default for future commands.
 			var selectedProject types.Project
 
 			if opts.projectID != "" {
-				project, err := client.ResolveProject(opts.projectID)
+				project, err := client.GetProject(opts.projectID)
 				if err != nil {
-					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+					return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 				}
 				selectedProject = project
 			} else {

@@ -172,9 +172,9 @@ Changes only the properties you specify - others remain unchanged.`,
 			}
 			var movedToProject *types.Project
 			if cmd.Flags().Changed("move-to") || cmd.Flags().Changed("to") {
-				resolvedProject, resolveErr := client.ResolveProject(opts.moveToProject)
+				resolvedProject, resolveErr := client.GetProject(opts.moveToProject)
 				if resolveErr != nil {
-					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.moveToProject, resolveErr)
+					return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.moveToProject, resolveErr)
 				}
 				movedToProject = &resolvedProject
 			}
@@ -225,7 +225,7 @@ Changes only the properties you specify - others remain unchanged.`,
 	cmd.Flags().StringSliceVar(&opts.tags, "tag", []string{}, "Change tags on the task (comma-separated)")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Change task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
-	cmd.Flags().StringVar(&opts.moveToProject, "move-to", "", "Move task to a different project (name or ID)")
+	cmd.Flags().StringVar(&opts.moveToProject, "move-to", "", "Move task to a different project (ID)")
 	cmd.Flags().StringVar(&opts.moveToProject, "to", "", "Move task to a different project (alias for --move-to)")
 	_ = cmd.RegisterFlagCompletionFunc("move-to", completion.ProjectIDs())
 	_ = cmd.RegisterFlagCompletionFunc("to", completion.ProjectIDs())

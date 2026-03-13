@@ -55,8 +55,8 @@ and tags. At minimum, a title is required unless using interactive mode.`,
   # Create a task with priority and due date
   tickli task create -t "Submit report" -p high --due "tomorrow 5pm"
   
-  # Create a task in a specific project (by ID or name)
-  tickli task create -t "Call client" --project Work
+  # Create a task in a specific project (by ID)
+  tickli task create -t "Call client" --project abc123def456
   
   # Create a task with content and tags
   tickli task create -t "Team meeting" -c "Discuss Q3 roadmap" --tag meeting,work
@@ -72,9 +72,9 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				return fmt.Errorf("no project selected. Use -P <project> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
 			}
 
-			resolvedProject, err := client.ResolveProject(opts.projectID)
+			resolvedProject, err := client.GetProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+				return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 			opts.projectID = resolvedProject.ID
 
