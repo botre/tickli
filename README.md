@@ -260,7 +260,7 @@ Tickli is built to serve two audiences equally: humans at a terminal and AI agen
 
 **Graceful degradation, not separate modes.** When stdin is a TTY, commands present an interactive fuzzy selector. When piped or redirected, they automatically fall back to machine-friendly tab-separated output. No extra flag is needed -the right behavior is inferred from context.
 
-**Consistent, predictable JSON.** Every mutating command (`create`, `update`, `complete`, `uncomplete`, `move`) returns the full task object in `--json` mode, not a minimal acknowledgement. Scripts can always parse the same shape. Computed fields like `duration` are included so callers don't need to recompute.
+**Consistent, predictable JSON.** Every mutating command (`create`, `update`, `complete`, `uncomplete`, `move`, `delete`) returns the full task object in `--json` mode, not a minimal acknowledgement. Scripts can always parse the same shape. Computed fields like `duration` are included so callers don't need to recompute.
 
 **Flags should be unsurprising.** Each flag name has one meaning across the entire CLI. Where the same concept appears in multiple commands, the flag name and semantics match (e.g. `--to` works on both `move` and `update`). Short flags (`-a`, `-p`, `-t`) are never overloaded within the same command.
 

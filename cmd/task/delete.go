@@ -8,6 +8,7 @@ import (
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
+	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -49,6 +50,16 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 				}
 			}
 
+			// Fetch task before deletion so JSON output can return the full object
+			var taskSnapshot *types.Task
+			if resolveOutput(cmd, opts.output) == types.OutputJSON {
+				t, getErr := client.GetTask(opts.taskID)
+				if getErr != nil {
+					return errors.Wrap(getErr, fmt.Sprintf("failed to get task %q", opts.taskID))
+				}
+				taskSnapshot = t
+			}
+
 			err := client.DeleteTask(opts.taskID)
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("failed to delete task %q", opts.taskID))
@@ -56,8 +67,8 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
-				result := map[string]string{"id": opts.taskID, "status": "deleted"}
-				jsonData, _ := json.MarshalIndent(result, "", "  ")
+				utils.ComputeFields(taskSnapshot)
+				jsonData, _ := json.MarshalIndent(taskSnapshot, "", "  ")
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
 				fmt.Println(opts.taskID)

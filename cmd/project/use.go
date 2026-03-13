@@ -8,6 +8,7 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/config"
+	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
@@ -79,6 +80,9 @@ switches directly. The selected project becomes the default for future commands.
 				}
 				selectedProject = project
 			} else {
+				if !prompt.IsInteractive() {
+					return fmt.Errorf("project argument required in non-interactive mode. Run 'tickli project list -o json' to see available projects")
+				}
 				project, err := utils.FuzzySelectProject(projects, "")
 				if err != nil {
 					return errors.Wrap(err, "could not select project")
