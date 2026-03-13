@@ -52,9 +52,7 @@ This is equivalent to TickTick's "Next 7 Days" smart view.`,
 				}
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
-				for _, t := range tasks {
-					fmt.Println(t.ID)
-				}
+				printProjectTaskIDs(tasks)
 			default:
 				if !isInteractive() {
 					printProjectTasksSimple(tasks)

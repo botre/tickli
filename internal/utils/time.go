@@ -42,8 +42,8 @@ func TruncateToDate(t time.Time) time.Time {
 // ParseFlexibleTime parses time values in multiple formats:
 // - ISO 8601 with timezone (e.g. 2025-02-18T15:04:05+02:00)
 // - ISO 8601 with compact offset (e.g. 2025-02-18T15:04:05+0200)
-// - Plain date (e.g. 2025-02-18) — treated as midnight local time
-// - Natural language (e.g. "tomorrow", "next friday 5pm") — returns start of the parsed range
+// - Plain date (e.g. 2025-02-18); treated as midnight local time
+// - Natural language (e.g. "tomorrow", "next friday 5pm"); returns start of the parsed range
 func ParseFlexibleTime(value string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC3339, value); err == nil {
 		return t, nil

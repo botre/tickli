@@ -29,7 +29,7 @@ func newShowCommand(client *api.Client) *cobra.Command {
 		Short:   "Show a task",
 		Long: `Show complete information about a specific task identified by its ID.
 
-The task is found automatically across all projects — no --project flag needed.
+The task is found automatically across all projects; no --project flag needed.
 Displays title, content, dates, priority, tags, and other properties.`,
 		Example: `  # Show task details in human-readable format
   tickli task show abc123def456

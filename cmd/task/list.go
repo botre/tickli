@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -226,6 +227,9 @@ tags, and due date. Results are displayed in an interactive selector.`,
 				}
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
+				if len(filteredTasks) == 0 {
+					fmt.Fprintln(os.Stderr, "No tasks found")
+				}
 				for _, t := range filteredTasks {
 					fmt.Println(t.ID)
 				}
