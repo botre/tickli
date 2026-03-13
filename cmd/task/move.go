@@ -6,8 +6,8 @@ import (
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
-	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -59,8 +59,9 @@ The --to flag specifying the target project (name or ID) is required.`,
 			case types.OutputQuiet:
 				fmt.Println(t.ID)
 			default:
-				fmt.Printf("Task %s moved to %s\n", t.ID, resolvedProject.Name)
-				fmt.Println(utils.GetTaskDescription(*t, project.DefaultColor))
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Task %s moved to %s", t.ID, resolvedProject.Name)))
+				fmt.Println(r.TaskDetail(*t, resolvedProject.Name))
 			}
 			return nil
 		},

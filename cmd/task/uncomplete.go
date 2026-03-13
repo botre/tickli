@@ -6,10 +6,10 @@ import (
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
-	"github.com/gookit/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +55,8 @@ Reactivates tasks that were previously completed.`,
 			case types.OutputQuiet:
 				fmt.Println(opts.taskID)
 			default:
-				fmt.Printf("%s Task %s uncompleted\n", color.Yellow.Sprint("☐"), opts.taskID)
+				r := render.New()
+				fmt.Println(r.InfoMessage(fmt.Sprintf("Task %s uncompleted", opts.taskID)))
 			}
 			return nil
 		},

@@ -8,6 +8,9 @@ import (
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/forms"
+	"github.com/botre/tickli/internal/tui/render"
+	"github.com/botre/tickli/internal/tui/theme"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
@@ -82,26 +85,24 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				if !prompt.IsInteractive() {
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
-				opts.title = prompt.String("Title", opts.title)
-				if opts.title == "" {
-					return fmt.Errorf("title is required")
+				t := theme.Default()
+				result, err := forms.RunTaskCreateForm(t, forms.TaskFormResult{
+					Title:    opts.title,
+					Content:  opts.content,
+					Priority: opts.priority,
+					Date:     opts.date,
+				})
+				if err != nil {
+					return fmt.Errorf("form cancelled: %w", err)
 				}
-				opts.content = prompt.String("Content", opts.content)
-
-				priorities := []string{"none", "low", "medium", "high"}
-				idx, err := prompt.Select("Priority:", priorities)
-				if err == nil {
-					_ = opts.priority.Set(priorities[idx])
+				opts.title = result.Title
+				opts.content = result.Content
+				opts.priority = result.Priority
+				if result.Date != "" {
+					opts.date = result.Date
 				}
-
-				dateInput := prompt.String("Date (e.g. 'tomorrow 2pm')", "")
-				if dateInput != "" {
-					opts.date = dateInput
-				}
-
-				tagsInput := prompt.String("Tags (comma-separated)", "")
-				if tagsInput != "" {
-					for _, tag := range strings.Split(tagsInput, ",") {
+				if result.Tags != "" {
+					for _, tag := range strings.Split(result.Tags, ",") {
 						tag = strings.TrimSpace(tag)
 						if tag != "" {
 							opts.tags = append(opts.tags, tag)
@@ -172,7 +173,8 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 			case types.OutputQuiet:
 				fmt.Println(t.ID)
 			default:
-				fmt.Printf("Created task %s\n", t.ID)
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Created task %s", t.ID)))
 			}
 			return nil
 		},

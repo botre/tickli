@@ -8,6 +8,7 @@ import (
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
@@ -159,35 +160,8 @@ func filterByOpts(tasks []projectTask, opts *viewOptions) []projectTask {
 }
 
 func getProjectTaskDescription(t projectTask) string {
-	projectLine := t.ProjectColor.Sprint("----------------------")
-
-	lines := fmt.Sprintf(`
-Task Details:
-
-%s %s
-%s`,
-		t.Status.ColorString(),
-		projectLine,
-		t.Title,
-	)
-
-	if t.Content != "" {
-		lines += fmt.Sprintf("\nContent: %s", t.Content)
-	}
-	lines += fmt.Sprintf("\nPriority: %s", t.Priority.ColorString())
-	lines += fmt.Sprintf("\nProject: %s", t.ProjectName)
-
-	if s := formatTime(t.StartDate); s != "" {
-		lines += fmt.Sprintf("\nStart: %s", s)
-	}
-	if s := formatTime(t.DueDate); s != "" {
-		lines += fmt.Sprintf("\nDue: %s", s)
-	}
-	if len(t.Tags) > 0 {
-		lines += fmt.Sprintf("\nTags: %v", t.Tags)
-	}
-
-	return lines
+	r := render.New()
+	return r.TaskDetail(t.Task, t.ProjectName)
 }
 
 func formatTime(t types.TickTickTime) string {
@@ -212,13 +186,25 @@ func printProjectTasksSimple(tasks []projectTask) {
 		fmt.Fprintln(os.Stderr, "No tasks found")
 		return
 	}
-	for _, t := range tasks {
-		due := formatTime(t.DueDate)
-		if due == "" {
-			due = "no due date"
+	if !isInteractive() {
+		// Piped: tab-separated for scripting
+		for _, t := range tasks {
+			due := formatTime(t.DueDate)
+			if due == "" {
+				due = "no due date"
+			}
+			fmt.Printf("%s\t[%s]\t%s\t%s\t%s\n", t.ID, t.ProjectName, t.Title, t.Priority, due)
 		}
-		fmt.Printf("%s\t[%s]\t%s\t%s\t%s\n", t.ID, t.ProjectName, t.Title, t.Priority, due)
+		return
 	}
+	r := render.New()
+	plainTasks := make([]types.Task, len(tasks))
+	names := make([]string, len(tasks))
+	for i, t := range tasks {
+		plainTasks[i] = t.Task
+		names[i] = t.ProjectName
+	}
+	fmt.Println(r.TaskListWithProjects(plainTasks, names))
 }
 
 func printProjectTaskIDs(tasks []projectTask) {

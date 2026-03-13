@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
@@ -78,11 +79,12 @@ then displays a fuzzy-search selector to choose a project.`,
 					utils.PrintProjectsSimple(projects)
 					return nil
 				}
-				project, err := utils.FuzzySelectProject(projects, "")
+				p, err := utils.FuzzySelectProject(projects, "")
 				if err != nil {
 					return errors.Wrap(err, "failed to select project")
 				}
-				fmt.Println(fmt.Sprintf("(%s) %s", project.ID, project.Name))
+				r := render.New()
+				fmt.Println(r.ProjectDetail(p))
 			}
 			return nil
 		},

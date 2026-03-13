@@ -1,9 +1,12 @@
 # Tickli
 
-A command line interface for TickTick task management.
+A beautiful command line interface for TickTick task management, built with [Charm](https://charm.sh).
 
 ## Features
 
+- Full-screen interactive TUI dashboard (`tickli tui`) with keyboard navigation
+- Gorgeous interactive forms for task and project creation (powered by [Huh](https://github.com/charmbracelet/huh))
+- Consistent, themed output across all commands (powered by [Lip Gloss](https://github.com/charmbracelet/lipgloss))
 - Smart views: today, tomorrow, next 7 days, inbox, and all tasks across all projects
 - Create, update, move, complete, uncomplete, and delete tasks
 - Create, update, show, and delete projects; set active project with `project use`
@@ -80,6 +83,7 @@ tickli task uncomplete <task-id>
 | `tickli init`     | Initialize tickli                        |
 | `tickli reset`    | Reset authentication (`--force`/`-f` to skip confirmation) |
 | `tickli version`  | Show the version                         |
+| `tickli tui`      | Launch the interactive TUI dashboard     |
 
 ### Smart Views
 
@@ -269,6 +273,48 @@ tickli completion fish > ~/.config/fish/completions/tickli.fish
 
 Restart your shell after installing.
 
+## Interactive TUI
+
+Launch the full-screen interactive dashboard with `tickli tui`. The TUI provides:
+
+- **Smart view tabs** — switch between Today, Tomorrow, Week, Inbox, and All views with `1`–`5`
+- **Task browsing** — navigate tasks with arrow keys, view details with `Enter`
+- **Project browser** — press `p` to browse projects, `Enter` to see a project's tasks
+- **Inline completion** — mark tasks done with `x` without leaving the TUI
+- **Fuzzy filtering** — press `/` to filter tasks by title
+- **Live refresh** — press `r` to refresh data from TickTick
+
+### TUI Keybindings
+
+| Key       | Action                    |
+| --------- | ------------------------- |
+| `1`–`5`   | Switch smart view         |
+| `↑`/`↓`   | Navigate list             |
+| `Enter`   | View task details         |
+| `/`       | Filter tasks              |
+| `x`       | Complete selected task    |
+| `p`       | Browse projects           |
+| `r`       | Refresh data              |
+| `Esc`     | Go back                   |
+| `q`       | Quit                      |
+
+### Interactive Forms
+
+Commands that support `--interactive` (`-i`) now use gorgeous form UIs powered by [Huh](https://github.com/charmbracelet/huh):
+
+```bash
+# Create a task with the interactive form
+tickli task create -i
+
+# Create a project interactively
+tickli project create -i
+
+# Update a task interactively
+tickli task update <task-id> -i
+```
+
+Destructive operations (delete, reset) use styled confirmation prompts.
+
 ## Design Philosophy
 
 Tickli is built to serve two audiences equally: humans at a terminal and AI agents (or scripts) driving it programmatically.
@@ -294,4 +340,10 @@ Tickli is built to serve two audiences equally: humans at a terminal and AI agen
 **`--help` is the spec.** Every command and flag carries a short, precise description. Usage examples are included for non-obvious patterns. Agents discover capabilities through `--help`, so it must be complete and parseable.
 
 **Semantic exit codes.** Exit codes distinguish between success (0), general errors (1), usage errors (2), not-found (3), and auth failures (4). Scripts can branch on the exit code without parsing stderr.
+
+**One theme, everywhere.** Every piece of styled output draws from a single `Theme` struct. Change the palette once and the entire CLI updates — task lists, detail views, forms, status bars. No orphaned color constants.
+
+**Every pixel earns its place.** UI chrome (borders, padding, icons) exists to aid scanning, not to decorate. A priority flag is a single colored glyph. A due date uses one word ("tomorrow"), not a timestamp. Information density is a feature.
+
+**Keyboard-first, mouse-optional.** The TUI is designed around single-key navigation. Every action is reachable without chords or menus. Discoverability comes from the help bar, not from exploration.
 

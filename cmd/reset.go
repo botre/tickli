@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/internal/config"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/forms"
 	"github.com/spf13/cobra"
 )
 
@@ -25,11 +23,11 @@ func NewResetCommand() *cobra.Command {
 This is useful if you need to reauthenticate with TickTick.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !opts.force && prompt.IsInteractive() {
-				fmt.Printf("Are you sure you want to reset authentication? (y/N): ")
-				reader := bufio.NewReader(os.Stdin)
-				confirm, _ := reader.ReadString('\n')
-				confirm = strings.TrimSpace(confirm)
-				if confirm != "y" && confirm != "Y" {
+				confirmed, err := forms.RunConfirm(
+					"Reset authentication?",
+					"This will remove your access token and require re-authentication.",
+				)
+				if err != nil || !confirmed {
 					fmt.Println("Reset aborted")
 					return nil
 				}

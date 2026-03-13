@@ -6,9 +6,9 @@ import (
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
-	"github.com/gookit/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +53,8 @@ longer appear in default listings unless using the --all flag.`,
 			case types.OutputQuiet:
 				fmt.Println(opts.taskID)
 			default:
-				fmt.Printf("%s Task %s completed\n", color.Green.Sprint("☑"), opts.taskID)
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Task %s completed", opts.taskID)))
 			}
 			return nil
 		},
