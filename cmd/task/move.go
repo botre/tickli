@@ -23,7 +23,8 @@ func newMoveCommand(client *api.Client) *cobra.Command {
 		Short: "Move a task to a different project",
 		Long: `Move a task from its current project to a different one.
 
-The target project can be specified by name or ID.`,
+The task is found automatically across all projects — no --project flag needed.
+The --to flag specifying the target project is required and accepts a name or ID.`,
 		Example: `  # Move a task to the "Work" project
   tickli task move abc123def456 --to Work
 
@@ -41,7 +42,7 @@ The target project can be specified by name or ID.`,
 
 			resolvedProject, err := client.ResolveProject(targetProject)
 			if err != nil {
-				return fmt.Errorf("target project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", targetProject)
+				return fmt.Errorf("target project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", targetProject, err)
 			}
 
 			err = client.MoveTask(t.ID, t.ProjectID, resolvedProject.ID)
@@ -68,7 +69,7 @@ The target project can be specified by name or ID.`,
 		},
 	}
 
-	cmd.Flags().StringVar(&targetProject, "to", "", "Target project (name or ID)")
+	cmd.Flags().StringVar(&targetProject, "to", "", "Target project (name or ID) [required]")
 	_ = cmd.MarkFlagRequired("to")
 	_ = cmd.RegisterFlagCompletionFunc("to", completion.ProjectIDs())
 	cmd.Flags().VarP(&output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")

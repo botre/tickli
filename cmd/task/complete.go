@@ -25,8 +25,9 @@ func newCompleteCmd(client *api.Client) *cobra.Command {
 		Short: "Complete a task",
 		Long: `Change a task's status to completed.
 
-Takes a task ID and marks it as done. The task remains in the system
-but will no longer appear in default listings unless using the --all flag.`,
+Takes a task ID and marks it as done. The task is found automatically
+across all projects — no --project flag needed. Completed tasks will no
+longer appear in default listings unless using the --all flag.`,
 		Example: `  # Complete a task
   tickli task complete abc123def456`,
 		Args:              cobra.ExactArgs(1),

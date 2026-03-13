@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/botre/tickli/cmd/project"
 	"github.com/botre/tickli/cmd/task"
 	"github.com/botre/tickli/cmd/view"
+	cliErrors "github.com/botre/tickli/internal/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -54,8 +56,8 @@ Complete documentation is available at https://github.com/botre/tickli`,
 		SilenceUsage:  false,
 	}
 	cmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "Disable color output")
-	cmd.PersistentFlags().BoolVar(&JSONOutput, "json", false, "Output in JSON format")
-	cmd.PersistentFlags().BoolVarP(&QuietOutput, "quiet", "q", false, "Only print IDs")
+	cmd.PersistentFlags().BoolVar(&JSONOutput, "json", false, "Output in JSON format (overrides per-command -o)")
+	cmd.PersistentFlags().BoolVarP(&QuietOutput, "quiet", "q", false, "Only print IDs (overrides per-command -o)")
 	cmd.AddCommand(
 		NewInitCommand(),
 		NewResetCommand(),
@@ -99,6 +101,12 @@ func Execute() {
 		msg := err.Error()
 		code := ExitError
 		switch {
+		case errors.As(err, new(*cliErrors.NotFoundError)):
+			code = ExitNotFound
+		case errors.As(err, new(*cliErrors.UsageError)):
+			code = ExitUsage
+		case errors.As(err, new(*cliErrors.AuthError)):
+			code = ExitAuthError
 		case strings.Contains(msg, "required flag") ||
 			strings.Contains(msg, "flags in the group") ||
 			strings.Contains(msg, "unknown flag") ||

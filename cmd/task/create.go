@@ -59,7 +59,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
   tickli task create -t "Call client" --project Work
   
   # Create a task with content and tags
-  tickli task create -t "Team meeting" -c "Discuss Q3 roadmap" --tags meeting,work
+  tickli task create -t "Team meeting" -c "Discuss Q3 roadmap" --tag meeting,work
   
   # Create a task interactively
   tickli task create -i`,
@@ -74,11 +74,14 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 
 			resolvedProject, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 			opts.projectID = resolvedProject.ID
 
 			if opts.interactive {
+				if !prompt.IsInteractive() {
+					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
+				}
 				opts.title = prompt.String("Title", opts.title)
 				if opts.title == "" {
 					return fmt.Errorf("title is required")
@@ -177,7 +180,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Title of the task (required unless -i)")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Additional details about the task")
-	cmd.Flags().BoolVar(&opts.allDay, "all-day", false, "Set as an all-day task without specific time")
+	cmd.Flags().BoolVar(&opts.allDay, "all-day", false, "Set as an all-day task without specific time (use --all-day=false to unset)")
 	cmd.Flags().StringVar(&opts.startDate, "start", "", "When the task begins (ISO 8601, e.g. '2025-02-18T15:04:05+01:00')")
 	cmd.Flags().StringVar(&opts.dueDate, "due", "", "When the task is due (ISO 8601, e.g. '2025-02-18T18:00:00+01:00')")
 	cmd.Flags().StringVar(&opts.date, "date", "", "Set date with natural language (e.g., 'today', 'next week')")
@@ -189,7 +192,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.Flags().StringVar(&opts.timeZone, "timezone", "", "Timezone for date calculations (e.g., 'America/Los_Angeles')")
 	cmd.Flags().StringSliceVar(&opts.reminders, "reminders", []string{}, "List of reminder triggers (e.g., '9h', '0s')")
 	_ = cmd.Flags().MarkHidden("reminders")
-	cmd.Flags().StringSliceVar(&opts.tags, "tags", []string{}, "Apply tags to categorize the task (comma-separated)")
+	cmd.Flags().StringSliceVar(&opts.tags, "tag", []string{}, "Apply tags to categorize the task (comma-separated)")
 	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "Recurring rule (e.g., 'daily', 'weekly on monday')")
 	_ = cmd.Flags().MarkHidden("repeat")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high")

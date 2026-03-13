@@ -178,7 +178,7 @@ tags, and due date. Results are displayed in an interactive selector.`,
 
 			resolvedProject, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 			opts.projectID = resolvedProject.ID
 

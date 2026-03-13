@@ -40,7 +40,7 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resolvedProject, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 
 			if !opts.force && prompt.IsInteractive() {

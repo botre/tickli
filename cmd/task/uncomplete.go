@@ -26,6 +26,7 @@ func newUncompleteCommand(client *api.Client) *cobra.Command {
 		Short: "Uncomplete a task",
 		Long: `Change a task's status from completed back to active.
 
+The task is found automatically across all projects — no --project flag needed.
 Reactivates tasks that were previously completed.`,
 		Example: `  # Reactivate a completed task
   tickli task uncomplete abc123def456`,

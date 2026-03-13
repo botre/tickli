@@ -3,12 +3,12 @@ package project
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/config"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -59,7 +59,7 @@ Can include associated tasks and switch between output formats.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resolvedProject, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 
 			output := resolveOutput(cmd, opts.output)
@@ -67,6 +67,9 @@ Can include associated tasks and switch between output formats.`,
 				projectData, err := client.GetProjectWithTasks(resolvedProject.ID)
 				if err != nil {
 					return errors.Wrap(err, "failed to get project data")
+				}
+				for i := range projectData.Tasks {
+					utils.ComputeFields(&projectData.Tasks[i])
 				}
 				switch output {
 				case types.OutputJSON:

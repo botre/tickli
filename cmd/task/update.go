@@ -49,9 +49,9 @@ func newUpdateCommand(client *api.Client) *cobra.Command {
 		Use:   "update <task-id>",
 		Short: "Update a task",
 		Long: `Update any property of an existing task identified by its ID.
-    
-Changes only the properties you specify - others remain unchanged.
-This command allows modifying title, content, priority, dates, and more.`,
+
+The task is found automatically across all projects — no --project flag needed.
+Changes only the properties you specify - others remain unchanged.`,
 		Example: `  # Update a task's title
   tickli task update abc123def456 -t "New title"
   
@@ -75,6 +75,9 @@ This command allows modifying title, content, priority, dates, and more.`,
 			}
 
 			if opts.interactive {
+				if !prompt.IsInteractive() {
+					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
+				}
 				newTitle := prompt.String("Title", t.Title)
 				if newTitle != t.Title {
 					t.Title = newTitle
@@ -126,7 +129,7 @@ This command allows modifying title, content, priority, dates, and more.`,
 			if cmd.Flags().Changed("priority") {
 				t.Priority = opts.priority
 			}
-			if cmd.Flags().Changed("tags") {
+			if cmd.Flags().Changed("tag") {
 				t.Tags = opts.tags
 			}
 			if cmd.Flags().Changed("date") {
@@ -171,7 +174,7 @@ This command allows modifying title, content, priority, dates, and more.`,
 			if cmd.Flags().Changed("move-to") || cmd.Flags().Changed("to") {
 				resolvedProject, resolveErr := client.ResolveProject(opts.moveToProject)
 				if resolveErr != nil {
-					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.moveToProject)
+					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.moveToProject, resolveErr)
 				}
 				movedToProject = &resolvedProject
 			}
@@ -219,6 +222,7 @@ This command allows modifying title, content, priority, dates, and more.`,
 	_ = cmd.Flags().MarkHidden("reminders")
 	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "New recurring rule (e.g., 'daily', 'weekly on monday')")
 	_ = cmd.Flags().MarkHidden("repeat")
+	cmd.Flags().StringSliceVar(&opts.tags, "tag", []string{}, "Change tags on the task (comma-separated)")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Change task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().StringVar(&opts.moveToProject, "move-to", "", "Move task to a different project (name or ID)")

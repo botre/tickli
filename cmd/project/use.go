@@ -76,7 +76,7 @@ switches directly. The selected project becomes the default for future commands.
 			if opts.projectID != "" {
 				project, err := client.ResolveProject(opts.projectID)
 				if err != nil {
-					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
+					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 				}
 				selectedProject = project
 			} else {

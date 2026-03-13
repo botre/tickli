@@ -39,12 +39,15 @@ supports both direct parameter input and interactive mode.`,
   tickli project create "My New Project"
   
   # Create a project with custom properties
-  tickli project create -n "Work Tasks" -c "#FF5733" --view-mode kanban --kind TASK
+  tickli project create -n "Work Tasks" -C "#FF5733" --view-mode kanban --kind TASK
   
   # Create a project in interactive mode
   tickli project create -i`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if opts.interactive {
+				if !prompt.IsInteractive() {
+					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
+				}
 				opts.name = prompt.String("Project name", opts.name)
 				if opts.name == "" {
 					return fmt.Errorf("project name is required")
@@ -79,7 +82,7 @@ supports both direct parameter input and interactive mode.`,
 
 			p, err := client.CreateProject(p)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to create project %s", p.Name))
+				return errors.Wrap(err, fmt.Sprintf("failed to create project %q", opts.name))
 			}
 
 			switch resolveOutput(cmd, opts.output) {
@@ -99,7 +102,7 @@ supports both direct parameter input and interactive mode.`,
 		},
 	}
 	cmd.Flags().StringVarP(&opts.name, "name", "n", "", "Name of the new project (required unless -i)")
-	cmd.Flags().VarP(&opts.color, "color", "c", "Color for the project (hex format, e.g., '#F18181')")
+	cmd.Flags().VarP(&opts.color, "color", "C", "Color for the project (hex format, e.g., '#F18181')")
 	_ = cmd.RegisterFlagCompletionFunc("color", project.ColorCompletionFunc)
 	cmd.Flags().Var(&opts.viewMode, "view-mode", "How to display tasks: list, kanban, or timeline (default: list)")
 	_ = cmd.RegisterFlagCompletionFunc("view-mode", project.ViewModeCompletionFunc)
