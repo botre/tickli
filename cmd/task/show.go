@@ -51,6 +51,7 @@ You can choose between human-readable output or machine-readable JSON.`,
 			}
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
+				utils.ComputeFields(task)
 				jsonData, err := json.MarshalIndent(task, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")

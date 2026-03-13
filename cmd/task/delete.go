@@ -51,7 +51,7 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 
 			err := client.DeleteTask(opts.taskID)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to delete task %s", opts.taskID))
+				return errors.Wrap(err, fmt.Sprintf("failed to delete task %q", opts.taskID))
 			}
 
 			switch resolveOutput(cmd, opts.output) {

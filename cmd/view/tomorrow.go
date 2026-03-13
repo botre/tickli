@@ -44,6 +44,7 @@ This is equivalent to TickTick's "Tomorrow" smart view.`,
 				if tasks == nil {
 					tasks = []projectTask{}
 				}
+				computeProjectTaskFields(tasks)
 				jsonData, err := json.MarshalIndent(tasks, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
@@ -54,6 +55,10 @@ This is equivalent to TickTick's "Tomorrow" smart view.`,
 					fmt.Println(t.ID)
 				}
 			default:
+				if !isInteractive() {
+					printProjectTasksSimple(tasks)
+					return nil
+				}
 				t, err := fuzzySelectProjectTask(tasks, "")
 				if err != nil {
 					return err

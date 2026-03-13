@@ -81,7 +81,7 @@ Can include associated tasks and switch between output formats.`,
 			} else {
 				project, err := client.GetProject(opts.projectID)
 				if err != nil {
-					return errors.Wrap(err, fmt.Sprintf("failed to get project %s", opts.projectID))
+					return errors.Wrap(err, fmt.Sprintf("failed to get project %q", opts.projectID))
 				}
 				switch output {
 				case types.OutputJSON:
@@ -101,7 +101,7 @@ Can include associated tasks and switch between output formats.`,
 	}
 
 	cmd.Flags().BoolVar(&opts.withTasks, "with-tasks", false, "Include all tasks belonging to this project")
-	cmd.Flags().VarP(&opts.output, "output", "o", "Format for displaying results: simple (human-readable) or json (machine-readable)")
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
 	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 	return cmd
 }

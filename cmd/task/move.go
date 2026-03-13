@@ -36,7 +36,7 @@ The target project can be specified by name or ID.`,
 
 			t, err := client.GetTask(taskID)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to get task %s", taskID))
+				return errors.Wrap(err, fmt.Sprintf("failed to get task %q", taskID))
 			}
 
 			resolvedProject, err := client.ResolveProject(targetProject)
@@ -46,12 +46,13 @@ The target project can be specified by name or ID.`,
 
 			err = client.MoveTask(t.ID, t.ProjectID, resolvedProject.ID)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to move task %s", taskID))
+				return errors.Wrap(err, fmt.Sprintf("failed to move task %q", taskID))
 			}
 			t.ProjectID = resolvedProject.ID
 
 			switch resolveOutput(cmd, output) {
 			case types.OutputJSON:
+				utils.ComputeFields(t)
 				jsonData, err := json.MarshalIndent(t, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")

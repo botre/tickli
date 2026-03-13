@@ -62,6 +62,7 @@ Completed tasks are excluded by default. Use --all to include them.`,
 				if tasks == nil {
 					tasks = []projectTask{}
 				}
+				computeProjectTaskFields(tasks)
 				jsonData, err := json.MarshalIndent(tasks, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
@@ -72,6 +73,10 @@ Completed tasks are excluded by default. Use --all to include them.`,
 					fmt.Println(t.ID)
 				}
 			default:
+				if !isInteractive() {
+					printProjectTasksSimple(tasks)
+					return nil
+				}
 				t, err := fuzzySelectProjectTask(tasks, "")
 				if err != nil {
 					return err

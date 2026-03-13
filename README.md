@@ -115,16 +115,17 @@ Single-task commands (show, update, delete, complete, uncomplete) only need a ta
 | `--title`         | `-t`  | create, update   | Task title                                         |
 | `--content`       | `-c`  | create, update   | Task content/description                           |
 | `--priority`      | `-p`  | create, update, list | Priority: `none`, `low`, `medium`, `high`      |
-| `--date`          |       | create, update   | Due date                                           |
-| `--start-date`    |       | create, update   | Start date                                         |
+| `--date`          |       | create, update   | Set date range with natural language               |
+| `--start`         |       | create, update   | Start date (ISO 8601)                              |
+| `--due`           |       | create, update   | Due date (ISO 8601)                                |
 | `--timezone`      |       | create, update   | Timezone for dates                                 |
 | `--tags`          |       | create, update   | Comma-separated tags                               |
-| `--all-day`       | `-a`  | create, update   | Set as all-day task                                |
-| `--due`           |       | list             | Filter: `today`, `tomorrow`, `this-week`, `overdue`|
+| `--all-day`       |       | create, update   | Set as all-day task (strips time; `=false` to unset)|
+| `--due-within`    |       | list             | Filter: `today`, `tomorrow`, `this-week`, `overdue`|
 | `--tag`           |       | list             | Filter by tag                                      |
 | `--all`           | `-a`  | list             | Include completed tasks                            |
 | `--verbose`       | `-v`  | list             | Show more details                                  |
-| `--move-to`       |       | update           | Move task to a different project (name or ID)      |
+| `--move-to`/`--to`|       | update           | Move task to a different project (name or ID)      |
 | `--to`            |       | move             | Target project (name or ID)                        |
 | `--force`         | `-f`  | delete           | Skip confirmation prompt                           |
 | `--interactive`   | `-i`  | create, update   | Use interactive prompts                            |
@@ -186,6 +187,23 @@ tickli today --json
 
 # Count overdue high priority tasks
 tickli today -p high --quiet | wc -l
+
+# Create an all-day task (no specific time)
+tickli task create -t "Team offsite" --all-day --due "2025-03-20T00:00:00Z"
+
+# Remove all-day status
+tickli task update <task-id> --all-day=false
+
+# Date formats accept timezone offsets with or without colon
+tickli task create -t "Call" --start "2025-03-14T10:00:00+02:00" --due "2025-03-14T11:00:00+0200"
+
+# Non-interactive fallback: piped/redirected output auto-detects non-TTY
+echo "" | tickli today          # prints tab-separated rows instead of fuzzy selector
+tickli today | cut -f3          # extract just the title column
+
+# Duration field in JSON: computed from start/due when both are set
+tickli task show <task-id> --json | jq .duration
+tickli today --json | jq '.[] | select(.duration)'
 ```
 
 ### Exit Codes
@@ -235,6 +253,20 @@ tickli completion fish > ~/.config/fish/completions/tickli.fish
 ```
 
 Restart your shell after installing.
+
+## Design Philosophy
+
+Tickli is built to serve two audiences equally: humans at a terminal and AI agents (or scripts) driving it programmatically.
+
+**Graceful degradation, not separate modes.** When stdin is a TTY, commands present an interactive fuzzy selector. When piped or redirected, they automatically fall back to machine-friendly tab-separated output. No extra flag is needed -the right behavior is inferred from context.
+
+**Consistent, predictable JSON.** Every mutating command (`create`, `update`, `complete`, `uncomplete`, `move`) returns the full task object in `--json` mode, not a minimal acknowledgement. Scripts can always parse the same shape. Computed fields like `duration` are included so callers don't need to recompute.
+
+**Flags should be unsurprising.** Each flag name has one meaning across the entire CLI. Where the same concept appears in multiple commands, the flag name and semantics match (e.g. `--to` works on both `move` and `update`). Short flags (`-a`, `-p`, `-t`) are never overloaded within the same command.
+
+**Flexible input, strict output.** Date parsing accepts both `+02:00` and `+0200` timezone offsets because producers vary. Output always uses a single canonical format. `--all-day` automatically strips time components rather than requiring the caller to zero them manually.
+
+**Don't hide the escape hatch.** Boolean flags like `--all-day` support explicit `=false` so that both setting and unsetting are scriptable without needing a separate `--no-all-day` flag.
 
 ## Documentation
 

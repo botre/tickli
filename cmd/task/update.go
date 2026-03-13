@@ -71,7 +71,7 @@ This command allows modifying title, content, priority, dates, and more.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			t, err := client.GetTask(opts.taskID)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to get task with ID %s", opts.taskID))
+				return errors.Wrap(err, fmt.Sprintf("failed to get task %q", opts.taskID))
 			}
 
 			if opts.interactive {
@@ -140,14 +140,14 @@ This command allows modifying title, content, priority, dates, and more.`,
 
 			}
 			if opts.startDate != "" {
-				startDate, err := time.Parse(time.RFC3339, opts.startDate)
+				startDate, err := utils.ParseFlexibleTime(opts.startDate)
 				if err != nil {
 					return errors.Wrap(err, "failed to parse start date")
 				}
 				t.StartDate = types.TickTickTime(startDate)
 			}
 			if opts.dueDate != "" {
-				dueDate, err := time.Parse(time.RFC3339, opts.dueDate)
+				dueDate, err := utils.ParseFlexibleTime(opts.dueDate)
 				if err != nil {
 					return errors.Wrap(err, "failed to parse due date")
 				}
@@ -158,9 +158,17 @@ This command allows modifying title, content, priority, dates, and more.`,
 			}
 			if cmd.Flags().Changed("all-day") {
 				t.IsAllDay = opts.allDay
+				if opts.allDay {
+					if s := time.Time(t.StartDate); !s.IsZero() {
+						t.StartDate = types.TickTickTime(utils.TruncateToDate(s))
+					}
+					if d := time.Time(t.DueDate); !d.IsZero() {
+						t.DueDate = types.TickTickTime(utils.TruncateToDate(d))
+					}
+				}
 			}
 			var movedToProject *types.Project
-			if cmd.Flags().Changed("move-to") {
+			if cmd.Flags().Changed("move-to") || cmd.Flags().Changed("to") {
 				resolvedProject, resolveErr := client.ResolveProject(opts.moveToProject)
 				if resolveErr != nil {
 					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.moveToProject)
@@ -169,16 +177,17 @@ This command allows modifying title, content, priority, dates, and more.`,
 			}
 			t, err = client.UpdateTask(t)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to update task %s", opts.taskID))
+				return errors.Wrap(err, fmt.Sprintf("failed to update task %q", opts.taskID))
 			}
 			if movedToProject != nil {
 				if moveErr := client.MoveTask(t.ID, t.ProjectID, movedToProject.ID); moveErr != nil {
-					return errors.Wrap(moveErr, fmt.Sprintf("failed to move task %s", opts.taskID))
+					return errors.Wrap(moveErr, fmt.Sprintf("failed to move task %q", opts.taskID))
 				}
 				t.ProjectID = movedToProject.ID
 			}
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
+				utils.ComputeFields(t)
 				jsonData, err := json.MarshalIndent(t, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
@@ -196,9 +205,9 @@ This command allows modifying title, content, priority, dates, and more.`,
 
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Change the task title")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Change or add content/description")
-	cmd.Flags().BoolVarP(&opts.allDay, "all-day", "a", false, "Toggle all-day status for the task")
-	cmd.Flags().StringVar(&opts.startDate, "start", "", "Change when the task begins")
-	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Change when the task is due")
+	cmd.Flags().BoolVar(&opts.allDay, "all-day", false, "Change to all-day task without specific time (use --all-day=false to unset)")
+	cmd.Flags().StringVar(&opts.startDate, "start", "", "Change when the task begins (ISO 8601, e.g. '2025-02-18T15:04:05+01:00')")
+	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Change when the task is due (ISO 8601, e.g. '2025-02-18T18:00:00+01:00')")
 	cmd.Flags().StringVar(&opts.date, "date", "", "Set date with natural language (e.g., 'today', 'next week')")
 
 	cmd.MarkFlagsMutuallyExclusive("date", "start")
@@ -207,11 +216,15 @@ This command allows modifying title, content, priority, dates, and more.`,
 
 	cmd.Flags().StringVar(&opts.timeZone, "timezone", "", "Change timezone for date calculations")
 	cmd.Flags().StringSliceVar(&opts.reminders, "reminders", []string{}, "Set reminders (e.g., '10m', '1h before')")
+	_ = cmd.Flags().MarkHidden("reminders")
 	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "New recurring rule (e.g., 'daily', 'weekly on monday')")
+	_ = cmd.Flags().MarkHidden("repeat")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Change task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().StringVar(&opts.moveToProject, "move-to", "", "Move task to a different project (name or ID)")
+	cmd.Flags().StringVar(&opts.moveToProject, "to", "", "Move task to a different project (alias for --move-to)")
 	_ = cmd.RegisterFlagCompletionFunc("move-to", completion.ProjectIDs())
+	_ = cmd.RegisterFlagCompletionFunc("to", completion.ProjectIDs())
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Update task by answering prompts")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
 	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
