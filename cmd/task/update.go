@@ -172,9 +172,9 @@ Changes only the properties you specify - others remain unchanged.`,
 			}
 			var movedToProject *types.Project
 			if cmd.Flags().Changed("move-to") || cmd.Flags().Changed("to") {
-				resolvedProject, resolveErr := client.GetProject(opts.moveToProject)
+				resolvedProject, resolveErr := client.ResolveProject(opts.moveToProject)
 				if resolveErr != nil {
-					return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.moveToProject, resolveErr)
+					return resolveErr
 				}
 				movedToProject = &resolvedProject
 			}
@@ -209,9 +209,9 @@ Changes only the properties you specify - others remain unchanged.`,
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Change the task title")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Change or add content/description")
 	cmd.Flags().BoolVar(&opts.allDay, "all-day", false, "Change to all-day task without specific time (use --all-day=false to unset)")
-	cmd.Flags().StringVar(&opts.startDate, "start", "", "Change when the task begins (e.g. 'tomorrow', '2025-02-18', or ISO 8601)")
-	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Change when the task is due (e.g. 'friday', '2025-02-18', or ISO 8601)")
-	cmd.Flags().StringVar(&opts.date, "date", "", "Set date with natural language (e.g., 'today', 'next week')")
+	cmd.Flags().StringVar(&opts.startDate, "start", "", "Change start date/time (e.g. 'tomorrow', '2025-02-18'). Use with --due for ranges")
+	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Change deadline (e.g. 'friday', '2025-02-18'). Use with --start for ranges")
+	cmd.Flags().StringVar(&opts.date, "date", "", "Set start+due together via natural language (e.g. 'today', 'tomorrow 2pm'). Cannot combine with --start/--due")
 
 	cmd.MarkFlagsMutuallyExclusive("date", "start")
 	cmd.MarkFlagsMutuallyExclusive("date", "due")
@@ -224,7 +224,7 @@ Changes only the properties you specify - others remain unchanged.`,
 	cmd.Flags().StringSliceVar(&opts.tags, "tag", []string{}, "Change tags on the task (comma-separated)")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Change task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
-	cmd.Flags().StringVar(&opts.moveToProject, "move-to", "", "Move task to a different project (ID)")
+	cmd.Flags().StringVar(&opts.moveToProject, "move-to", "", "Move task to a different project (name or ID)")
 	cmd.Flags().StringVar(&opts.moveToProject, "to", "", "Move task to a different project (alias for --move-to)")
 	_ = cmd.RegisterFlagCompletionFunc("move-to", completion.ProjectIDs())
 	_ = cmd.RegisterFlagCompletionFunc("to", completion.ProjectIDs())

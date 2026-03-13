@@ -34,8 +34,8 @@ Can include associated tasks and switch between output formats.`,
 		Example: `  # Show current project
   tickli project show
   
-  # Show specific project
-  tickli project show abc123def456
+  # Show specific project by name or ID
+  tickli project show Chores
   
   # Show project with all its tasks
   tickli project show --with-tasks
@@ -57,9 +57,9 @@ Can include associated tasks and switch between output formats.`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			resolvedProject, err := client.GetProject(opts.projectID)
+			resolvedProject, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+				return err
 			}
 
 			output := resolveOutput(cmd, opts.output)

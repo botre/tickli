@@ -3,6 +3,8 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"unicode"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
@@ -96,6 +98,161 @@ func (c *Client) ListProjects() ([]types.Project, error) {
 	projects = append(projects, types.InboxProject)
 
 	return projects, nil
+}
+
+// ResolveProject finds a project by ID or name.
+// It tries an exact ID lookup first, then falls back to fuzzy name matching
+// across all projects (exact → prefix → contains → Levenshtein).
+func (c *Client) ResolveProject(nameOrID string) (types.Project, error) {
+	// Try direct ID lookup first
+	if p, err := c.GetProject(nameOrID); err == nil {
+		return p, nil
+	}
+
+	// Fall back to name-based matching
+	projects, err := c.ListProjects()
+	if err != nil {
+		return types.NullProject, errors.Wrap(err, "listing projects for name lookup")
+	}
+
+	return matchProjectByName(projects, nameOrID)
+}
+
+// normalizeName strips emojis and surrounding whitespace, then lowercases
+// the result so that "🧼Chores" becomes "chores".
+func normalizeName(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) || unicode.IsPunct(r) {
+			b.WriteRune(r)
+		}
+	}
+	return strings.ToLower(strings.TrimSpace(b.String()))
+}
+
+// matchProjectByName finds the best project match by name using progressively
+// looser matching: exact → prefix → contains → Levenshtein distance.
+// Emojis are stripped from project names before comparison.
+func matchProjectByName(projects []types.Project, query string) (types.Project, error) {
+	queryNorm := normalizeName(query)
+
+	// 1. Exact case-insensitive match (ignoring emojis)
+	for _, p := range projects {
+		if normalizeName(p.Name) == queryNorm {
+			return p, nil
+		}
+	}
+
+	// 2. Prefix match
+	var prefixMatches []types.Project
+	for _, p := range projects {
+		if strings.HasPrefix(normalizeName(p.Name), queryNorm) {
+			prefixMatches = append(prefixMatches, p)
+		}
+	}
+	if len(prefixMatches) == 1 {
+		return prefixMatches[0], nil
+	}
+	if len(prefixMatches) > 1 {
+		return types.NullProject, ambiguousMatchError(query, prefixMatches)
+	}
+
+	// 3. Contains match
+	var containsMatches []types.Project
+	for _, p := range projects {
+		if strings.Contains(normalizeName(p.Name), queryNorm) {
+			containsMatches = append(containsMatches, p)
+		}
+	}
+	if len(containsMatches) == 1 {
+		return containsMatches[0], nil
+	}
+	if len(containsMatches) > 1 {
+		return types.NullProject, ambiguousMatchError(query, containsMatches)
+	}
+
+	// 4. Levenshtein distance (typo tolerance)
+	maxDist := len(query) / 3
+	if maxDist < 1 {
+		maxDist = 1
+	}
+
+	type scored struct {
+		project  types.Project
+		distance int
+	}
+	var fuzzyMatches []scored
+	for _, p := range projects {
+		d := levenshtein(normalizeName(p.Name), queryNorm)
+		if d <= maxDist {
+			fuzzyMatches = append(fuzzyMatches, scored{p, d})
+		}
+	}
+	if len(fuzzyMatches) == 1 {
+		return fuzzyMatches[0].project, nil
+	}
+	if len(fuzzyMatches) > 1 {
+		// Pick the closest match if it's unambiguous
+		best := fuzzyMatches[0]
+		ambiguous := false
+		for _, m := range fuzzyMatches[1:] {
+			if m.distance < best.distance {
+				best = m
+				ambiguous = false
+			} else if m.distance == best.distance {
+				ambiguous = true
+			}
+		}
+		if !ambiguous {
+			return best.project, nil
+		}
+		matched := make([]types.Project, len(fuzzyMatches))
+		for i, m := range fuzzyMatches {
+			matched[i] = m.project
+		}
+		return types.NullProject, ambiguousMatchError(query, matched)
+	}
+
+	return types.NullProject, fmt.Errorf("no project found matching %q. Run 'tickli project list' to see available projects", query)
+}
+
+func ambiguousMatchError(query string, matches []types.Project) error {
+	names := make([]string, len(matches))
+	for i, m := range matches {
+		names[i] = fmt.Sprintf("  %s (id: %s)", m.Name, m.ID)
+	}
+	return fmt.Errorf("multiple projects match %q:\n%s\nUse a more specific name or pass the project ID", query, strings.Join(names, "\n"))
+}
+
+// levenshtein computes the Levenshtein edit distance between two strings.
+func levenshtein(a, b string) int {
+	if len(a) == 0 {
+		return len(b)
+	}
+	if len(b) == 0 {
+		return len(a)
+	}
+
+	prev := make([]int, len(b)+1)
+	curr := make([]int, len(b)+1)
+
+	for j := range prev {
+		prev[j] = j
+	}
+
+	for i := 1; i <= len(a); i++ {
+		curr[0] = i
+		for j := 1; j <= len(b); j++ {
+			cost := 1
+			if a[i-1] == b[j-1] {
+				cost = 0
+			}
+			curr[j] = min(curr[j-1]+1, min(prev[j]+1, prev[j-1]+cost))
+		}
+		prev, curr = curr, prev
+	}
+
+	return prev[len(b)]
 }
 
 func (c *Client) GetProject(id string) (types.Project, error) {

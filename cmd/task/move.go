@@ -24,9 +24,9 @@ func newMoveCommand(client *api.Client) *cobra.Command {
 		Long: `Move a task from its current project to a different one.
 
 The task is found automatically across all projects; no --project flag needed.
-The --to flag specifying the target project ID is required.`,
-		Example: `  # Move a task to another project
-  tickli task move abc123def456 --to def789abc012`,
+The --to flag specifying the target project (name or ID) is required.`,
+		Example: `  # Move a task to another project by name
+  tickli task move abc123def456 --to Chores`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.TaskIDs(projectID),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -37,9 +37,9 @@ The --to flag specifying the target project ID is required.`,
 				return errors.Wrap(err, fmt.Sprintf("failed to get task %q", taskID))
 			}
 
-			resolvedProject, err := client.GetProject(targetProject)
+			resolvedProject, err := client.ResolveProject(targetProject)
 			if err != nil {
-				return fmt.Errorf("target project %q not found. Run 'tickli project list -o json' to see available projects: %w", targetProject, err)
+				return err
 			}
 
 			err = client.MoveTask(t.ID, t.ProjectID, resolvedProject.ID)
@@ -66,7 +66,7 @@ The --to flag specifying the target project ID is required.`,
 		},
 	}
 
-	cmd.Flags().StringVar(&targetProject, "to", "", "Target project ID [required]")
+	cmd.Flags().StringVar(&targetProject, "to", "", "Target project (name or ID) [required]")
 	_ = cmd.MarkFlagRequired("to")
 	_ = cmd.RegisterFlagCompletionFunc("to", completion.ProjectIDs())
 	cmd.Flags().VarP(&output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
