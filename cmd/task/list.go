@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
@@ -169,7 +169,7 @@ tags, and due date. Results are displayed in an interactive selector.`,
 				switch opts.dueDate {
 				case "today", "tomorrow", "this-week", "overdue":
 				default:
-					return fmt.Errorf("invalid --due value %q: must be one of today, tomorrow, this-week, overdue", opts.dueDate)
+					return fmt.Errorf("invalid --due-within value %q: must be one of today, tomorrow, this-week, overdue", opts.dueDate)
 				}
 			}
 			if opts.projectID == "" {
@@ -178,7 +178,7 @@ tags, and due date. Results are displayed in an interactive selector.`,
 
 			resolvedProject, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 			opts.projectID = resolvedProject.ID
 
@@ -217,6 +217,9 @@ tags, and due date. Results are displayed in an interactive selector.`,
 				if filteredTasks == nil {
 					filteredTasks = []types.Task{}
 				}
+				for i := range filteredTasks {
+					utils.ComputeFields(&filteredTasks[i])
+				}
 				jsonData, err := json.MarshalIndent(filteredTasks, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
@@ -227,9 +230,13 @@ tags, and due date. Results are displayed in an interactive selector.`,
 					fmt.Println(t.ID)
 				}
 			default:
+				if !prompt.IsInteractive() {
+					utils.PrintTasksSimple(filteredTasks)
+					return nil
+				}
 				t, err := utils.FuzzySelectTask(filteredTasks, projectColor, "")
 				if err != nil {
-					log.Fatal().Err(err).Msg("failed to select task")
+					return fmt.Errorf("failed to select task: %w", err)
 				}
 				fmt.Println(utils.GetTaskDescription(t, projectColor))
 			}
@@ -240,7 +247,7 @@ tags, and due date. Results are displayed in an interactive selector.`,
 	cmd.Flags().StringVar(&opts.tag, "tag", "", "Only show tasks with this specific tag")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Only show tasks with this priority level or higher")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
-	cmd.Flags().StringVar(&opts.dueDate, "due", "", "Filter by due date (today, tomorrow, this-week, overdue)")
+	cmd.Flags().StringVar(&opts.dueDate, "due-within", "", "Filter by due date window: today, tomorrow, this-week, overdue")
 	cmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", false, "Show more details for each task in the list")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
 	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)

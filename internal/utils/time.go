@@ -1,8 +1,10 @@
 package utils
 
 import (
-	"github.com/sho0pi/naturaltime"
+	"fmt"
 	"time"
+
+	"github.com/sho0pi/naturaltime"
 )
 
 var DefaultDuration = 1 * time.Hour
@@ -27,4 +29,23 @@ func ParseTimeExpression(expr string) (*naturaltime.Range, error) {
 	}
 	r.Duration = DefaultDuration
 	return r, nil
+}
+
+// TruncateToDate strips the time component, keeping only the date at midnight.
+func TruncateToDate(t time.Time) time.Time {
+	if t.IsZero() {
+		return t
+	}
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
+
+// ParseFlexibleTime parses ISO 8601 timestamps, accepting both +00:00 and +0000 offset formats.
+func ParseFlexibleTime(value string) (time.Time, error) {
+	if t, err := time.Parse(time.RFC3339, value); err == nil {
+		return t, nil
+	}
+	if t, err := time.Parse("2006-01-02T15:04:05-0700", value); err == nil {
+		return t, nil
+	}
+	return time.Time{}, fmt.Errorf("invalid time format %q: expected ISO 8601 (e.g. 2025-02-18T15:04:05Z or 2025-02-18T15:04:05+02:00)", value)
 }

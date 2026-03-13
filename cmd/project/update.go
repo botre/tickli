@@ -47,12 +47,15 @@ Changes only the properties you specify - others remain unchanged.`,
 			opts.projectID = args[0]
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := client.GetProject(opts.projectID)
+			p, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to fetch project %s", opts.projectID))
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 
 			if opts.interactive {
+				if !prompt.IsInteractive() {
+					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
+				}
 				newName := prompt.String("Name", p.Name)
 				if newName != "" {
 					p.Name = newName
@@ -112,7 +115,7 @@ Changes only the properties you specify - others remain unchanged.`,
 	}
 
 	cmd.Flags().StringVarP(&opts.name, "name", "n", "", "Change the project name")
-	cmd.Flags().VarP(&opts.color, "color", "c", "Change the project color (hex format, e.g., '#F18181')")
+	cmd.Flags().VarP(&opts.color, "color", "C", "Change the project color (hex format, e.g., '#F18181')")
 	cmd.Flags().Lookup("color").DefValue = ""
 	_ = cmd.RegisterFlagCompletionFunc("color", project.ColorCompletionFunc)
 	cmd.Flags().Var(&opts.viewMode, "view-mode", "Change how tasks are displayed: list, kanban, or timeline")

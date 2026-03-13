@@ -30,8 +30,9 @@ This is a shorthand for 'tickli task list --project inbox'.`,
   tickli inbox -p high`,
 		Args: cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			client = utils.LoadClient()
-			return nil
+			var err error
+			client, err = utils.LoadClient()
+			return err
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inbox := types.InboxProject
@@ -56,6 +57,7 @@ This is a shorthand for 'tickli task list --project inbox'.`,
 				if tasks == nil {
 					tasks = []projectTask{}
 				}
+				computeProjectTaskFields(tasks)
 				jsonData, err := json.MarshalIndent(tasks, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
@@ -66,6 +68,10 @@ This is a shorthand for 'tickli task list --project inbox'.`,
 					fmt.Println(t.ID)
 				}
 			default:
+				if !isInteractive() {
+					printProjectTasksSimple(tasks)
+					return nil
+				}
 				t, err := fuzzySelectProjectTask(tasks, "")
 				if err != nil {
 					return err

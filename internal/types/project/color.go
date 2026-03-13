@@ -45,6 +45,9 @@ func (c *Color) UnmarshalJSON(data []byte) error {
 }
 
 func (c Color) MarshalJSON() ([]byte, error) {
+	if c.isZero() {
+		return json.Marshal(nil)
+	}
 	return json.Marshal(c.String())
 }
 

@@ -20,8 +20,9 @@ func NewProjectCommand() *cobra.Command {
 		Use:   "project",
 		Short: "Work with TickTick projects",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			client = utils.LoadClient()
-			return nil
+			var err error
+			client, err = utils.LoadClient()
+			return err
 		},
 	}
 

@@ -30,8 +30,9 @@ This is equivalent to TickTick's "Today" smart view.`,
   tickli today -p high`,
 		Args: cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			client = utils.LoadClient()
-			return nil
+			var err error
+			client, err = utils.LoadClient()
+			return err
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			allTasks, err := fetchAllTasks(&client)
@@ -47,6 +48,7 @@ This is equivalent to TickTick's "Today" smart view.`,
 				if tasks == nil {
 					tasks = []projectTask{}
 				}
+				computeProjectTaskFields(tasks)
 				jsonData, err := json.MarshalIndent(tasks, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
@@ -57,6 +59,10 @@ This is equivalent to TickTick's "Today" smart view.`,
 					fmt.Println(t.ID)
 				}
 			default:
+				if !isInteractive() {
+					printProjectTasksSimple(tasks)
+					return nil
+				}
 				t, err := fuzzySelectProjectTask(tasks, "")
 				if err != nil {
 					return err

@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
+	"github.com/botre/tickli/internal/utils"
 	"github.com/ktr0731/go-fuzzyfinder"
 	"github.com/spf13/cobra"
 )
@@ -192,6 +194,26 @@ func formatTime(t types.TickTickTime) string {
 		return ""
 	}
 	return t.Humanize()
+}
+
+func isInteractive() bool {
+	return prompt.IsInteractive()
+}
+
+func computeProjectTaskFields(tasks []projectTask) {
+	for i := range tasks {
+		utils.ComputeFields(&tasks[i].Task)
+	}
+}
+
+func printProjectTasksSimple(tasks []projectTask) {
+	for _, t := range tasks {
+		due := formatTime(t.DueDate)
+		if due == "" {
+			due = "no due date"
+		}
+		fmt.Printf("%s\t[%s]\t%s\t%s\t%s\n", t.ID, t.ProjectName, t.Title, t.Priority, due)
+	}
 }
 
 func fuzzySelectProjectTask(tasks []projectTask, query string) (projectTask, error) {

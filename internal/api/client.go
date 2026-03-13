@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+	cliErrors "github.com/botre/tickli/internal/errors"
 	"github.com/botre/tickli/internal/types"
 )
 
@@ -98,7 +99,7 @@ func (c *Client) GetProject(id string) (types.Project, error) {
 		return types.NullProject, fmt.Errorf("failed to get project: %s", resp.String())
 	}
 	if project == types.NullProject {
-		return types.NullProject, fmt.Errorf("project not found: %s", id)
+		return types.NullProject, &cliErrors.NotFoundError{Message: fmt.Sprintf("project not found: %s", id)}
 	}
 
 	return project, nil
@@ -124,7 +125,7 @@ func (c *Client) ResolveProject(idOrName string) (types.Project, error) {
 		}
 	}
 
-	return types.NullProject, fmt.Errorf("project %q not found by ID or name", idOrName)
+	return types.NullProject, &cliErrors.NotFoundError{Message: fmt.Sprintf("project %q not found by ID or name", idOrName)}
 }
 
 func (c *Client) getTaskFromProject(projectID, taskID string) (*types.Task, error) {
@@ -140,7 +141,7 @@ func (c *Client) getTaskFromProject(projectID, taskID string) (*types.Task, erro
 		return nil, fmt.Errorf("failed to get task: %s", resp.String())
 	}
 	if task.ID == "" || task.Title == "" {
-		return nil, fmt.Errorf("task %s not found in project %s", taskID, projectID)
+		return nil, &cliErrors.NotFoundError{Message: fmt.Sprintf("task %s not found in project %s", taskID, projectID)}
 	}
 
 	return &task, nil
@@ -168,7 +169,7 @@ func (c *Client) GetTask(taskID string) (*types.Task, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("task %s not found in any project", taskID)
+	return nil, &cliErrors.NotFoundError{Message: fmt.Sprintf("task %s not found in any project", taskID)}
 }
 
 func (c *Client) ListTasks(projectID string) ([]types.Task, error) {

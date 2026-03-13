@@ -3,13 +3,14 @@ package task
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
+	cliErrors "github.com/botre/tickli/internal/errors"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/utils"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -27,9 +28,9 @@ func newShowCommand(client *api.Client) *cobra.Command {
 		Aliases: []string{"info", "get"},
 		Short:   "Show a task",
 		Long: `Show complete information about a specific task identified by its ID.
-    
-Displays title, content, dates, priority, tags, and other properties.
-You can choose between human-readable output or machine-readable JSON.`,
+
+The task is found automatically across all projects — no --project flag needed.
+Displays title, content, dates, priority, tags, and other properties.`,
 		Example: `  # Show task details in human-readable format
   tickli task show abc123def456
 
@@ -47,10 +48,11 @@ You can choose between human-readable output or machine-readable JSON.`,
 			}
 			if task.ID != opts.taskID {
 				log.Warn().Str("task-id", opts.taskID).Msg("task not found")
-				return fmt.Errorf("task %s not found", opts.taskID)
+				return &cliErrors.NotFoundError{Message: fmt.Sprintf("task %s not found", opts.taskID)}
 			}
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
+				utils.ComputeFields(task)
 				jsonData, err := json.MarshalIndent(task, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
@@ -67,5 +69,6 @@ You can choose between human-readable output or machine-readable JSON.`,
 	}
 
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
+	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 	return cmd
 }

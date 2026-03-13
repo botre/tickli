@@ -32,7 +32,11 @@ The --project flag is only needed for list and create.`,
   # Complete a task
   tickli task complete abc123def456`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			client = utils.LoadClient()
+			var err error
+			client, err = utils.LoadClient()
+			if err != nil {
+				return err
+			}
 			if projectID == "" {
 				cfg, err := config.Load()
 				if err != nil {

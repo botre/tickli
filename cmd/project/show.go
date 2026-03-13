@@ -3,12 +3,12 @@ package project
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/config"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -57,11 +57,19 @@ Can include associated tasks and switch between output formats.`,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			resolvedProject, err := client.ResolveProject(opts.projectID)
+			if err != nil {
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+			}
+
 			output := resolveOutput(cmd, opts.output)
 			if opts.withTasks {
-				projectData, err := client.GetProjectWithTasks(opts.projectID)
+				projectData, err := client.GetProjectWithTasks(resolvedProject.ID)
 				if err != nil {
 					return errors.Wrap(err, "failed to get project data")
+				}
+				for i := range projectData.Tasks {
+					utils.ComputeFields(&projectData.Tasks[i])
 				}
 				switch output {
 				case types.OutputJSON:
@@ -79,10 +87,7 @@ Can include associated tasks and switch between output formats.`,
 					}
 				}
 			} else {
-				project, err := client.GetProject(opts.projectID)
-				if err != nil {
-					return errors.Wrap(err, fmt.Sprintf("failed to get project %s", opts.projectID))
-				}
+				project := resolvedProject
 				switch output {
 				case types.OutputJSON:
 					jsonData, err := json.MarshalIndent(project, "", "  ")
@@ -101,7 +106,7 @@ Can include associated tasks and switch between output formats.`,
 	}
 
 	cmd.Flags().BoolVar(&opts.withTasks, "with-tasks", false, "Include all tasks belonging to this project")
-	cmd.Flags().VarP(&opts.output, "output", "o", "Format for displaying results: simple (human-readable) or json (machine-readable)")
+	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
 	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 	return cmd
 }

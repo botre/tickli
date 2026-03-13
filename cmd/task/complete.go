@@ -7,6 +7,7 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/types"
+	"github.com/botre/tickli/internal/utils"
 	"github.com/gookit/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -24,8 +25,9 @@ func newCompleteCmd(client *api.Client) *cobra.Command {
 		Short: "Complete a task",
 		Long: `Change a task's status to completed.
 
-Takes a task ID and marks it as done. The task remains in the system
-but will no longer appear in default listings unless using the --all flag.`,
+Takes a task ID and marks it as done. The task is found automatically
+across all projects — no --project flag needed. Completed tasks will no
+longer appear in default listings unless using the --all flag.`,
 		Example: `  # Complete a task
   tickli task complete abc123def456`,
 		Args:              cobra.ExactArgs(1),
@@ -41,8 +43,12 @@ but will no longer appear in default listings unless using the --all flag.`,
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
-				result := map[string]string{"id": opts.taskID, "status": "completed"}
-				jsonData, _ := json.MarshalIndent(result, "", "  ")
+				t, getErr := client.GetTask(opts.taskID)
+				if getErr != nil {
+					return errors.Wrap(getErr, "failed to get completed task")
+				}
+				utils.ComputeFields(t)
+				jsonData, _ := json.MarshalIndent(t, "", "  ")
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
 				fmt.Println(opts.taskID)

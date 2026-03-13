@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
@@ -69,6 +70,10 @@ then displays a fuzzy-search selector to choose a project.`,
 					fmt.Println(p.ID)
 				}
 			default:
+				if !prompt.IsInteractive() {
+					utils.PrintProjectsSimple(projects)
+					return nil
+				}
 				project, err := utils.FuzzySelectProject(projects, "")
 				if err != nil {
 					return errors.Wrap(err, "failed to select project")

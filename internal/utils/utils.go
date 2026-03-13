@@ -83,6 +83,26 @@ Task Details:
 	return lines
 }
 
+// PrintTasksSimple writes tab-separated task data to stdout for non-interactive use.
+func PrintTasksSimple(tasks []types.Task) {
+	for _, t := range tasks {
+		var due string
+		if d := time.Time(t.DueDate); !d.IsZero() {
+			due = t.DueDate.Humanize()
+		} else {
+			due = "no due date"
+		}
+		fmt.Printf("%s\t%s\t%s\t%s\n", t.ID, t.Title, t.Priority, due)
+	}
+}
+
+// PrintProjectsSimple writes tab-separated project data to stdout for non-interactive use.
+func PrintProjectsSimple(projects []types.Project) {
+	for _, p := range projects {
+		fmt.Printf("%s\t%s\n", p.ID, p.Name)
+	}
+}
+
 func FuzzySelectProject(projects []types.Project, query string) (types.Project, error) {
 	if len(projects) == 0 {
 		return types.Project{}, fmt.Errorf("no projects available for selection")

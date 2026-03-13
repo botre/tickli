@@ -20,6 +20,7 @@ type Task struct {
 	Status        task.Status     `json:"status"`
 	TimeZone      string          `json:"timeZone"`
 	Tags          []string        `json:"tags"`
+	Duration      string          `json:"duration,omitempty"`
 }
 
 type ChecklistItem struct {

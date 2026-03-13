@@ -59,7 +59,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
   tickli task create -t "Call client" --project Work
   
   # Create a task with content and tags
-  tickli task create -t "Team meeting" -c "Discuss Q3 roadmap" --tags meeting,work
+  tickli task create -t "Team meeting" -c "Discuss Q3 roadmap" --tag meeting,work
   
   # Create a task interactively
   tickli task create -i`,
@@ -74,11 +74,14 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 
 			resolvedProject, err := client.ResolveProject(opts.projectID)
 			if err != nil {
-				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects", opts.projectID)
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 			}
 			opts.projectID = resolvedProject.ID
 
 			if opts.interactive {
+				if !prompt.IsInteractive() {
+					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
+				}
 				opts.title = prompt.String("Title", opts.title)
 				if opts.title == "" {
 					return fmt.Errorf("title is required")
@@ -125,14 +128,14 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				t.IsAllDay = r.IsAllDay()
 			}
 			if opts.startDate != "" {
-				startDate, err := time.Parse(time.RFC3339, opts.startDate)
+				startDate, err := utils.ParseFlexibleTime(opts.startDate)
 				if err != nil {
 					return errors.Wrap(err, "failed to parse start date")
 				}
 				t.StartDate = types.TickTickTime(startDate)
 			}
 			if opts.dueDate != "" {
-				dueDate, err := time.Parse(time.RFC3339, opts.dueDate)
+				dueDate, err := utils.ParseFlexibleTime(opts.dueDate)
 				if err != nil {
 					return errors.Wrap(err, "failed to parse due date")
 				}
@@ -143,6 +146,14 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 			}
 			if cmd.Flags().Changed("all-day") {
 				t.IsAllDay = opts.allDay
+				if opts.allDay {
+					if s := time.Time(t.StartDate); !s.IsZero() {
+						t.StartDate = types.TickTickTime(utils.TruncateToDate(s))
+					}
+					if d := time.Time(t.DueDate); !d.IsZero() {
+						t.DueDate = types.TickTickTime(utils.TruncateToDate(d))
+					}
+				}
 			}
 
 			t, err = client.CreateTask(t)
@@ -152,6 +163,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
+				utils.ComputeFields(t)
 				jsonData, err := json.MarshalIndent(t, "", "  ")
 				if err != nil {
 					return errors.Wrap(err, "failed to marshal output")
@@ -168,9 +180,9 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Title of the task (required unless -i)")
 	cmd.Flags().StringVarP(&opts.content, "content", "c", "", "Additional details about the task")
-	cmd.Flags().BoolVarP(&opts.allDay, "all-day", "a", false, "Set as an all-day task without specific time")
-	cmd.Flags().StringVar(&opts.startDate, "start", "", "When the task begins (ISO format: '2025-02-18T15:04:05Z')")
-	cmd.Flags().StringVar(&opts.dueDate, "due", "", "When the task is due (ISO format: '2025-02-18T18:00:00Z')")
+	cmd.Flags().BoolVar(&opts.allDay, "all-day", false, "Set as an all-day task without specific time (use --all-day=false to unset)")
+	cmd.Flags().StringVar(&opts.startDate, "start", "", "When the task begins (ISO 8601, e.g. '2025-02-18T15:04:05+01:00')")
+	cmd.Flags().StringVar(&opts.dueDate, "due", "", "When the task is due (ISO 8601, e.g. '2025-02-18T18:00:00+01:00')")
 	cmd.Flags().StringVar(&opts.date, "date", "", "Set date with natural language (e.g., 'today', 'next week')")
 
 	cmd.MarkFlagsMutuallyExclusive("date", "all-day")
@@ -179,8 +191,10 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 
 	cmd.Flags().StringVar(&opts.timeZone, "timezone", "", "Timezone for date calculations (e.g., 'America/Los_Angeles')")
 	cmd.Flags().StringSliceVar(&opts.reminders, "reminders", []string{}, "List of reminder triggers (e.g., '9h', '0s')")
-	cmd.Flags().StringSliceVar(&opts.tags, "tags", []string{}, "Apply tags to categorize the task (comma-separated)")
+	_ = cmd.Flags().MarkHidden("reminders")
+	cmd.Flags().StringSliceVar(&opts.tags, "tag", []string{}, "Apply tags to categorize the task (comma-separated)")
 	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "Recurring rule (e.g., 'daily', 'weekly on monday')")
+	_ = cmd.Flags().MarkHidden("repeat")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Create task by answering prompts")

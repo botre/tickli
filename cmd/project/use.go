@@ -8,6 +8,7 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/config"
+	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
@@ -73,12 +74,15 @@ switches directly. The selected project becomes the default for future commands.
 			var selectedProject types.Project
 
 			if opts.projectID != "" {
-				project, err := findProjectByID(projects, opts.projectID)
+				project, err := client.ResolveProject(opts.projectID)
 				if err != nil {
-					return err
+					return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
 				}
 				selectedProject = project
 			} else {
+				if !prompt.IsInteractive() {
+					return fmt.Errorf("project argument required in non-interactive mode. Run 'tickli project list -o json' to see available projects")
+				}
 				project, err := utils.FuzzySelectProject(projects, "")
 				if err != nil {
 					return errors.Wrap(err, "could not select project")
@@ -98,8 +102,7 @@ switches directly. The selected project becomes the default for future commands.
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
-				result := map[string]string{"id": selectedProject.ID, "name": selectedProject.Name}
-				jsonData, _ := json.MarshalIndent(result, "", "  ")
+				jsonData, _ := json.MarshalIndent(selectedProject, "", "  ")
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
 				fmt.Println(selectedProject.ID)

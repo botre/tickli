@@ -1,15 +1,16 @@
 package utils
 
 import (
-	"github.com/rs/zerolog/log"
+	"fmt"
+
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/config"
 )
 
-func LoadClient() api.Client {
+func LoadClient() (api.Client, error) {
 	token, err := config.LoadToken()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Please run 'tickli init' first")
+		return api.Client{}, fmt.Errorf("failed to load token. Please run 'tickli init' first: %w", err)
 	}
-	return *api.NewClient(token)
+	return *api.NewClient(token), nil
 }

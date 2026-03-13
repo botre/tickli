@@ -8,6 +8,7 @@ import (
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/task"
+	"github.com/botre/tickli/internal/utils"
 	"github.com/gookit/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -25,6 +26,7 @@ func newUncompleteCommand(client *api.Client) *cobra.Command {
 		Short: "Uncomplete a task",
 		Long: `Change a task's status from completed back to active.
 
+The task is found automatically across all projects — no --project flag needed.
 Reactivates tasks that were previously completed.`,
 		Example: `  # Reactivate a completed task
   tickli task uncomplete abc123def456`,
@@ -47,8 +49,8 @@ Reactivates tasks that were previously completed.`,
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
-				result := map[string]string{"id": opts.taskID, "status": "uncompleted"}
-				jsonData, _ := json.MarshalIndent(result, "", "  ")
+				utils.ComputeFields(t)
+				jsonData, _ := json.MarshalIndent(t, "", "  ")
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
 				fmt.Println(opts.taskID)

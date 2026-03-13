@@ -38,9 +38,14 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 			opts.projectID = args[0]
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			resolvedProject, err := client.ResolveProject(opts.projectID)
+			if err != nil {
+				return fmt.Errorf("project %q not found by ID or name. Run 'tickli project list -o json' to see available projects: %w", opts.projectID, err)
+			}
+
 			if !opts.force && prompt.IsInteractive() {
 				var confirm string
-				fmt.Printf("Are you sure you want to delete the project %s? (y/N): ", opts.projectID)
+				fmt.Printf("Are you sure you want to delete the project %s? (y/N): ", resolvedProject.Name)
 				fmt.Scanln(&confirm)
 				if confirm != "y" && confirm != "Y" {
 					fmt.Println("Deletion aborted")
@@ -48,15 +53,14 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 				}
 			}
 
-			err := client.DeleteProject(opts.projectID)
+			err = client.DeleteProject(resolvedProject.ID)
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to delete project %s", opts.projectID))
+				return errors.Wrap(err, fmt.Sprintf("failed to delete project %q", opts.projectID))
 			}
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
-				result := map[string]string{"id": opts.projectID, "status": "deleted"}
-				jsonData, _ := json.MarshalIndent(result, "", "  ")
+				jsonData, _ := json.MarshalIndent(resolvedProject, "", "  ")
 				fmt.Println(string(jsonData))
 			case types.OutputQuiet:
 				fmt.Println(opts.projectID)
