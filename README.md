@@ -268,6 +268,14 @@ Tickli is built to serve two audiences equally: humans at a terminal and AI agen
 
 **Don't hide the escape hatch.** Boolean flags like `--all-day` support explicit `=false` so that both setting and unsetting are scriptable without needing a separate `--no-all-day` flag.
 
+**Minimal context required.** Single-task commands (`show`, `update`, `delete`, `complete`, `uncomplete`, `move`) only need a task ID. They search all projects automatically. The `--project` flag is only required for `list` and `create`, where a scope is genuinely ambiguous.
+
+**Name or ID, your choice.** Projects can be referenced by ID or name wherever a project argument is accepted (`--project`, `--to`, `--move-to`, positional args). Resolution tries ID first, then falls back to case-insensitive name matching.
+
+**Three-tier output with override hierarchy.** Output comes in three formats: `simple` (human-readable), `json` (machine-readable), and `quiet` (IDs only, for piping). The persistent `--json` and `--quiet` flags override the per-command `-o` flag, so a wrapper script can force JSON globally without modifying individual commands.
+
+**Semantic exit codes.** Exit codes distinguish between success (0), general errors (1), usage errors (2), not-found (3), and auth failures (4). Scripts can branch on the exit code without parsing stderr.
+
 ## Documentation
 
 For complete documentation on all available commands:
