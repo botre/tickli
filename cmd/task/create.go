@@ -31,7 +31,7 @@ type createOptions struct {
 	dueDate   string
 	timeZone  string
 
-	// reminders and repeat are more advanced features not implemented yet
+	// reminders are more advanced features not implemented yet
 	reminders []string
 	repeat    string
 
@@ -63,7 +63,10 @@ and tags. At minimum, a title is required unless using interactive mode.`,
   
   # Create a task with content and tags
   tickli task create -t "Team meeting" -c "Discuss Q3 roadmap" --tag meeting,work
-  
+
+  # Create a recurring daily task
+  tickli task create -t "Stand-up" --date "tomorrow" --repeat "RRULE:FREQ=DAILY;INTERVAL=1"
+
   # Create a task interactively
   tickli task create -i`,
 		Args: cobra.NoArgs,
@@ -174,6 +177,9 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 			if opts.timeZone != "" {
 				t.TimeZone = opts.timeZone
 			}
+			if opts.repeat != "" {
+				t.RepeatFlag = opts.repeat
+			}
 			if cmd.Flags().Changed("all-day") {
 				t.IsAllDay = opts.allDay
 				if opts.allDay {
@@ -223,8 +229,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.Flags().StringSliceVar(&opts.reminders, "reminders", []string{}, "List of reminder triggers (e.g., '9h', '0s')")
 	_ = cmd.Flags().MarkHidden("reminders")
 	cmd.Flags().StringSliceVar(&opts.tags, "tag", []string{}, "Apply tags to categorize the task (comma-separated)")
-	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "Recurring rule (e.g., 'daily', 'weekly on monday')")
-	_ = cmd.Flags().MarkHidden("repeat")
+	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "Recurrence rule in RRULE format (e.g., 'RRULE:FREQ=DAILY;INTERVAL=1')")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i", false, "Create task by answering prompts")
