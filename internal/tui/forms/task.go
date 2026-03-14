@@ -62,8 +62,8 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 
 	var fields []huh.Field
 
-	// Project selector if projects are provided and no project pre-selected
-	if len(projects) > 0 && result.Project == "" {
+	// Project selector if projects are provided
+	if len(projects) > 0 {
 		opts := make([]huh.Option[string], len(projects))
 		for i, p := range projects {
 			opts[i] = huh.NewOption(p.Name, p.ID)

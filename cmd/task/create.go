@@ -76,15 +76,12 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
 
-				// Fetch projects for the picker if no project is pre-selected
-				var projects []types.Project
+				// Always show project picker in interactive mode
 				allProjects, listErr := client.ListProjects()
 				if listErr != nil {
 					return fmt.Errorf("failed to fetch projects: %w", listErr)
 				}
-				if opts.projectID == "" {
-					projects = allProjects
-				}
+				projects := allProjects
 
 				// Collect known tags from all projects for the multi-select
 				var knownTags []string
