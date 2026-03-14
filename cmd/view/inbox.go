@@ -3,6 +3,7 @@ package view
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/types"
@@ -70,9 +71,13 @@ This is a shorthand for 'tickli task list --project inbox'.`,
 					printProjectTasksSimple(tasks)
 					return nil
 				}
-				t, err := fuzzySelectProjectTask(tasks, "")
+				t, ok, err := fuzzySelectProjectTask(tasks, "")
 				if err != nil {
 					return err
+				}
+				if !ok {
+					fmt.Fprintln(os.Stderr, "No tasks found")
+					return nil
 				}
 				fmt.Println(getProjectTaskDescription(t))
 			}

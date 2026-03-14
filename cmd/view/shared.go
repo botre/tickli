@@ -3,7 +3,6 @@ package view
 import (
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/botre/tickli/internal/api"
@@ -46,46 +45,31 @@ func resolveOutput(cmd *cobra.Command, output types.OutputFormat) types.OutputFo
 }
 
 func fetchAllTasks(client *api.Client) ([]projectTask, error) {
+	// Two API calls: one for projects (name lookup), one for all tasks
 	projects, err := client.ListProjects()
 	if err != nil {
 		return nil, fmt.Errorf("listing projects: %w", err)
 	}
 
-	type result struct {
-		tasks   []types.Task
-		project types.Project
-		err     error
-	}
-
-	ch := make(chan result, len(projects))
-	var wg sync.WaitGroup
-
+	projectMap := make(map[string]types.Project, len(projects)+1)
+	projectMap[types.InboxProject.ID] = types.InboxProject
 	for _, p := range projects {
-		wg.Add(1)
-		go func(proj types.Project) {
-			defer wg.Done()
-			tasks, err := client.ListTasks(proj.ID)
-			ch <- result{tasks: tasks, project: proj, err: err}
-		}(p)
+		projectMap[p.ID] = p
 	}
 
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
+	tasks, err := client.FilterTasks(api.TaskFilter{})
+	if err != nil {
+		return nil, fmt.Errorf("fetching tasks: %w", err)
+	}
 
 	var all []projectTask
-	for r := range ch {
-		if r.err != nil {
-			continue
-		}
-		for _, t := range r.tasks {
-			all = append(all, projectTask{
-				Task:         t,
-				ProjectName:  r.project.Name,
-				ProjectColor: r.project.Color,
-			})
-		}
+	for _, t := range tasks {
+		p := projectMap[t.ProjectID]
+		all = append(all, projectTask{
+			Task:         t,
+			ProjectName:  p.Name,
+			ProjectColor: p.Color,
+		})
 	}
 
 	return all, nil
@@ -217,9 +201,9 @@ func printProjectTaskIDs(tasks []projectTask) {
 	}
 }
 
-func fuzzySelectProjectTask(tasks []projectTask, _ string) (projectTask, error) {
+func fuzzySelectProjectTask(tasks []projectTask, _ string) (projectTask, bool, error) {
 	if len(tasks) == 0 {
-		return projectTask{}, fmt.Errorf("no tasks found")
+		return projectTask{}, false, nil
 	}
 	plainTasks := make([]types.Task, len(tasks))
 	names := make([]string, len(tasks))
@@ -229,13 +213,13 @@ func fuzzySelectProjectTask(tasks []projectTask, _ string) (projectTask, error) 
 	}
 	result, err := picker.RunTaskPicker(plainTasks, names, "Select Task")
 	if err != nil {
-		return projectTask{}, err
+		return projectTask{}, false, err
 	}
 	// Find the original projectTask to preserve ProjectColor
 	for _, t := range tasks {
 		if t.ID == result.Task.ID {
-			return t, nil
+			return t, true, nil
 		}
 	}
-	return projectTask{}, fmt.Errorf("selected task not found")
+	return projectTask{}, false, fmt.Errorf("selected task not found")
 }

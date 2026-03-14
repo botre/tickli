@@ -384,6 +384,38 @@ func sortTasksByDueDate(tasks []types.Task) {
 	})
 }
 
+// TaskFilter specifies criteria for the filter tasks endpoint.
+type TaskFilter struct {
+	ProjectIDs []string `json:"projectIds,omitempty"`
+	StartDate  string   `json:"startDate,omitempty"`
+	EndDate    string   `json:"endDate,omitempty"`
+	Priority   []int    `json:"priority,omitempty"`
+	Tag        []string `json:"tag,omitempty"`
+	Status     []int    `json:"status,omitempty"`
+}
+
+// FilterTasks retrieves tasks using the filter endpoint (single API call).
+func (c *Client) FilterTasks(filter TaskFilter) ([]types.Task, error) {
+	var tasks []types.Task
+	resp, err := c.http.R().
+		SetBody(filter).
+		SetResult(&tasks).
+		Post("/task/filter")
+
+	if err != nil {
+		return nil, errors.Wrap(err, "filtering tasks")
+	}
+	if resp.IsError() {
+		return nil, fmt.Errorf("failed to filter tasks: %s", apiErrorMessage(resp.String()))
+	}
+	if tasks == nil {
+		tasks = []types.Task{}
+	}
+
+	sortTasksByDueDate(tasks)
+	return tasks, nil
+}
+
 func (c *Client) CreateTask(task *types.Task) (*types.Task, error) {
 	if task == nil {
 		return nil, errors.New("task cannot be nil")

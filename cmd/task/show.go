@@ -61,8 +61,12 @@ Displays title, content, dates, priority, tags, and other properties.`,
 			case types.OutputQuiet:
 				fmt.Println(task.ID)
 			default:
+				projectName := ""
+				if p, err := client.GetProject(task.ProjectID); err == nil {
+					projectName = p.Name
+				}
 				r := render.New()
-				fmt.Println(r.TaskDetail(*task, ""))
+				fmt.Println(r.TaskDetail(*task, projectName))
 			}
 			return nil
 		},

@@ -155,6 +155,10 @@ tags, and due date. Results are displayed in an interactive selector.`,
 					utils.PrintTasksSimple(filteredTasks)
 					return nil
 				}
+				if len(filteredTasks) == 0 {
+					fmt.Fprintln(os.Stderr, "No tasks found")
+					return nil
+				}
 				result, err := picker.RunTaskPicker(filteredTasks, nil, "Select Task")
 				if err != nil {
 					return fmt.Errorf("failed to select task: %w", err)
