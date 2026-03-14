@@ -59,25 +59,25 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 	}
 
 	var extraTags string
+	var groups []*huh.Group
 
-	var fields []huh.Field
-
-	// Project selector if projects are provided
+	// Step 1: Project selection (if applicable)
 	if len(projects) > 0 {
 		opts := make([]huh.Option[string], len(projects))
 		for i, p := range projects {
 			opts[i] = huh.NewOption(p.Name, p.ID)
 		}
-		fields = append(fields,
+		groups = append(groups, huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Project").
 				Description("Which project does this belong to?").
 				Options(opts...).
 				Value(&result.Project),
-		)
+		))
 	}
 
-	fields = append(fields,
+	// Step 2: Title and content
+	groups = append(groups, huh.NewGroup(
 		huh.NewInput().
 			Title("Title").
 			Description("What needs to be done?").
@@ -96,7 +96,10 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 			Placeholder("Add notes, links, or context…").
 			Value(&result.Content).
 			Lines(3),
+	))
 
+	// Step 3: Priority and due date
+	groups = append(groups, huh.NewGroup(
 		huh.NewSelect[string]().
 			Title("Priority").
 			Description("How important is this?").
@@ -113,15 +116,15 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 			Description("e.g. 'tomorrow at 2pm', 'next Friday', '2025-03-20'").
 			Placeholder("Leave empty for no due date").
 			Value(&result.Date),
-	)
+	))
 
-	// Tags: multi-select from known tags, plus free-text for new ones
+	// Step 4: Tags
 	if len(knownTags) > 0 {
 		tagOpts := make([]huh.Option[string], len(knownTags))
 		for i, tag := range knownTags {
 			tagOpts[i] = huh.NewOption(tag, tag).Selected(contains(selectedTags, tag))
 		}
-		fields = append(fields,
+		groups = append(groups, huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title("Tags").
 				Description("Select existing tags").
@@ -132,20 +135,18 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 				Description("Add new tags (comma-separated)").
 				Placeholder("new-tag, another-tag…").
 				Value(&extraTags),
-		)
+		))
 	} else {
-		fields = append(fields,
+		groups = append(groups, huh.NewGroup(
 			huh.NewInput().
 				Title("Tags").
 				Description("Comma-separated").
 				Placeholder("work, important, meeting…").
 				Value(&result.Tags),
-		)
+		))
 	}
 
-	form := huh.NewForm(
-		huh.NewGroup(fields...),
-	).WithTheme(huh.ThemeDracula())
+	form := huh.NewForm(groups...).WithTheme(huhTheme(t))
 
 	err := form.Run()
 	if err != nil {

@@ -33,6 +33,7 @@ func RunProjectCreateForm(t theme.Theme, defaults ProjectFormResult) (*ProjectFo
 	}
 
 	form := huh.NewForm(
+		// Step 1: Name
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Project Name").
@@ -45,20 +46,22 @@ func RunProjectCreateForm(t theme.Theme, defaults ProjectFormResult) (*ProjectFo
 					}
 					return nil
 				}),
-
+		),
+		// Step 2: Appearance
+		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Color").
 				Description("Choose a project color").
 				Options(
-					huh.NewOption("Red", "#EC6665"),
-					huh.NewOption("Orange", "#F2B04A"),
-					huh.NewOption("Yellow", "#FFD866"),
-					huh.NewOption("Green", "#5CD0A7"),
-					huh.NewOption("Cyan", "#9BECEC"),
-					huh.NewOption("Blue", "#4AA6EF"),
-					huh.NewOption("Purple", "#CF66F6"),
-					huh.NewOption("Pink", "#EC70A5"),
-					huh.NewOption("White", "#FDF8DC"),
+					huh.NewOption("🔴 Red", "#EC6665"),
+					huh.NewOption("🟠 Orange", "#F2B04A"),
+					huh.NewOption("🟡 Yellow", "#FFD866"),
+					huh.NewOption("🟢 Green", "#5CD0A7"),
+					huh.NewOption("🔵 Cyan", "#9BECEC"),
+					huh.NewOption("💜 Blue", "#4AA6EF"),
+					huh.NewOption("🟣 Purple", "#CF66F6"),
+					huh.NewOption("💗 Pink", "#EC70A5"),
+					huh.NewOption("⚪ White", "#FDF8DC"),
 				).
 				Value(&result.Color),
 
@@ -71,7 +74,9 @@ func RunProjectCreateForm(t theme.Theme, defaults ProjectFormResult) (*ProjectFo
 					huh.NewOption("Timeline", "timeline"),
 				).
 				Value(&result.ViewMode),
-
+		),
+		// Step 3: Type
+		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Type").
 				Description("Project type").
@@ -81,7 +86,7 @@ func RunProjectCreateForm(t theme.Theme, defaults ProjectFormResult) (*ProjectFo
 				).
 				Value(&result.Kind),
 		),
-	).WithTheme(huh.ThemeDracula())
+	).WithTheme(huhTheme(t))
 
 	err := form.Run()
 	if err != nil {
