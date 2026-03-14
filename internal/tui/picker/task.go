@@ -54,7 +54,7 @@ func taskRow(tk types.Task, projectName string, showProject bool) table.Row {
 		priorityFlag = theme.IconPriority
 	}
 
-	dueStr := ""
+	dueStr := "—"
 	due := time.Time(tk.DueDate)
 	if !due.IsZero() {
 		dueStr = tk.DueDate.Humanize()
