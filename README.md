@@ -93,6 +93,7 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | `--due`           |       | create, update   | Due date (natural language, plain date, or ISO 8601)    |
 | `--timezone`      |       | create, update   | Timezone for dates                                 |
 | `--tag`           |       | create, update, list | Comma-separated tags (create/update), filter by tag (list) |
+| `--repeat`        |       | create, update   | Recurrence rule in RRULE format (e.g., `RRULE:FREQ=DAILY;INTERVAL=1`) |
 | `--all-day`       |       | create, update   | Set as all-day task (strips time; `=false` to unset)|
 | `--due-within`    |       | list             | Filter: `today`, `tomorrow`, `this-week`, `overdue`|
 | `--all`           | `-a`  | list             | Include completed tasks                            |

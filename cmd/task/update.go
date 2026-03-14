@@ -35,7 +35,7 @@ type updateOptions struct {
 	dueDate   string
 	timeZone  string
 
-	// reminders and repeat are more advanced features not implemented yet
+	// reminders are more advanced features not implemented yet
 	reminders []string
 	repeat    string
 
@@ -62,7 +62,10 @@ Changes only the properties you specify - others remain unchanged.`,
   
   # Change due date
   tickli task update abc123def456 --due "2025-03-21"
-  
+
+  # Make a task repeat weekly
+  tickli task update abc123def456 --repeat "RRULE:FREQ=WEEKLY;INTERVAL=1"
+
   # Update interactively
   tickli task update abc123def456 -i`,
 		Args:              cobra.ExactArgs(1),
@@ -166,6 +169,9 @@ Changes only the properties you specify - others remain unchanged.`,
 			if opts.timeZone != "" {
 				t.TimeZone = opts.timeZone
 			}
+			if cmd.Flags().Changed("repeat") {
+				t.RepeatFlag = opts.repeat
+			}
 			if cmd.Flags().Changed("all-day") {
 				t.IsAllDay = opts.allDay
 				if opts.allDay {
@@ -227,8 +233,7 @@ Changes only the properties you specify - others remain unchanged.`,
 	cmd.Flags().StringVar(&opts.timeZone, "timezone", "", "Change timezone for date calculations")
 	cmd.Flags().StringSliceVar(&opts.reminders, "reminders", []string{}, "Set reminders (e.g., '10m', '1h before')")
 	_ = cmd.Flags().MarkHidden("reminders")
-	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "New recurring rule (e.g., 'daily', 'weekly on monday')")
-	_ = cmd.Flags().MarkHidden("repeat")
+	cmd.Flags().StringVar(&opts.repeat, "repeat", "", "Recurrence rule in RRULE format (e.g., 'RRULE:FREQ=DAILY;INTERVAL=1')")
 	cmd.Flags().StringSliceVar(&opts.tags, "tag", []string{}, "Change tags on the task (comma-separated)")
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Change task importance: none, low, medium, high")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
