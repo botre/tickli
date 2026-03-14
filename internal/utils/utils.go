@@ -3,11 +3,30 @@ package utils
 import (
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 )
+
+// SortTasksByDueDate sorts tasks by due date ascending, with no-date tasks at the end.
+func SortTasksByDueDate(tasks []types.Task) {
+	sort.SliceStable(tasks, func(i, j int) bool {
+		di := time.Time(tasks[i].DueDate)
+		dj := time.Time(tasks[j].DueDate)
+		if di.IsZero() && dj.IsZero() {
+			return false
+		}
+		if di.IsZero() {
+			return false
+		}
+		if dj.IsZero() {
+			return true
+		}
+		return di.Before(dj)
+	})
+}
 
 // PrintTasksSimple writes styled task data to stdout for non-interactive use.
 // When piped (non-TTY), falls back to tab-separated format for scripting.

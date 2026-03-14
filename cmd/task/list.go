@@ -129,6 +129,7 @@ tags, and due date. Results are displayed in an interactive selector.`,
 				return err
 			}
 			filteredTasks = filterTasks(filteredTasks, opts)
+			utils.SortTasksByDueDate(filteredTasks)
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:

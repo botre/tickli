@@ -104,6 +104,66 @@ func RenderTaskDetail(t theme.Theme, tsk types.Task, projectName string, width i
 	return card
 }
 
+// RenderTaskPreview returns a compact one-line preview for the picker detail pane.
+func RenderTaskPreview(t theme.Theme, tsk types.Task, projectName string, width int) string {
+	if width <= 0 {
+		width = 80
+	}
+	contentWidth := width - 4
+
+	var lines []string
+
+	// Title
+	lines = append(lines, t.TaskTitle.Width(contentWidth).Render(tsk.Title))
+
+	// Metadata line: priority, project, due
+	var meta []string
+	meta = append(meta, renderPriorityInline(t, tsk.Priority))
+	if projectName != "" {
+		meta = append(meta, t.TaskProject.Render(projectName))
+	}
+	if d := time.Time(tsk.DueDate); !d.IsZero() {
+		dueStr := tsk.DueDate.Humanize()
+		if d.Before(time.Now()) && tsk.Status != task.StatusComplete {
+			meta = append(meta, t.TaskDueOverdue.Render(dueStr))
+		} else {
+			meta = append(meta, t.TaskDue.Render(dueStr))
+		}
+	}
+	if len(tsk.Tags) > 0 {
+		var tags []string
+		for _, tag := range tsk.Tags {
+			tags = append(tags, t.TaskTag.Render(theme.IconTag+tag))
+		}
+		meta = append(meta, strings.Join(tags, " "))
+	}
+	lines = append(lines, strings.Join(meta, t.Muted.Render(" · ")))
+
+	// Content snippet
+	if tsk.Content != "" {
+		snippet := tsk.Content
+		if len(snippet) > contentWidth {
+			snippet = snippet[:contentWidth-1] + "…"
+		}
+		lines = append(lines, t.TaskContent.Width(contentWidth).Render(snippet))
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func renderPriorityInline(t theme.Theme, p task.Priority) string {
+	switch p {
+	case task.PriorityHigh:
+		return t.PriorityHigh.Render(theme.IconPriority + " High")
+	case task.PriorityMedium:
+		return t.PriorityMedium.Render(theme.IconPriority + " Medium")
+	case task.PriorityLow:
+		return t.PriorityLow.Render(theme.IconPriority + " Low")
+	default:
+		return t.PriorityNone.Render("None")
+	}
+}
+
 func renderPriorityLabel(t theme.Theme, p task.Priority) string {
 	label := t.Muted.Render("Priority ")
 	switch p {

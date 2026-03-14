@@ -2,7 +2,6 @@ package picker
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
@@ -128,7 +127,7 @@ func (m projectPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *projectPickerModel) applyFilter() {
-	query := strings.ToLower(m.filter.Value())
+	query := m.filter.Value()
 	if query == "" {
 		m.table.SetRows(m.allRows)
 		m.filteredIdx = make([]int, len(m.allRows))
@@ -141,14 +140,7 @@ func (m *projectPickerModel) applyFilter() {
 	var rows []table.Row
 	var idx []int
 	for i, row := range m.allRows {
-		match := false
-		for _, cell := range row {
-			if strings.Contains(strings.ToLower(cell), query) {
-				match = true
-				break
-			}
-		}
-		if match {
+		if fuzzyMatchRow(row, query) {
 			rows = append(rows, row)
 			idx = append(idx, i)
 		}
