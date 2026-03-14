@@ -35,10 +35,9 @@ type taskPickerModel struct {
 	tasks        []types.Task
 	projectNames []string
 	allRows      []table.Row
-	filteredIdx  []int // maps filtered row index → original task index
+	filteredIdx  []int
 	result       TaskPickerResult
 	showDetail   bool
-	filtering    bool
 	width        int
 	height       int
 	title        string
@@ -89,9 +88,10 @@ func newTaskPickerModel(t theme.Theme, tasks []types.Task, projectNames []string
 	)
 
 	fi := textinput.New()
-	fi.Prompt = "/ "
+	fi.Prompt = "> "
 	fi.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(string(t.Palette.Primary)))
-	fi.Placeholder = "filter…"
+	fi.Placeholder = "type to filter…"
+	fi.Focus()
 
 	return taskPickerModel{
 		theme:        t,
@@ -108,7 +108,7 @@ func newTaskPickerModel(t theme.Theme, tasks []types.Task, projectNames []string
 }
 
 func (m taskPickerModel) Init() tea.Cmd {
-	return nil
+	return textinput.Blink
 }
 
 func (m taskPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -121,45 +121,37 @@ func (m taskPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.detail.Height = m.height - 2
 		} else {
 			m.table.SetWidth(m.width)
-			m.table.SetHeight(m.height - 3)
+			m.table.SetHeight(m.height - 4)
 			m.resizeColumns()
 		}
 		return m, nil
 
 	case tea.KeyMsg:
-		if m.filtering {
+		if m.showDetail {
 			switch {
-			case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
-				m.filtering = false
-				m.filter.SetValue("")
-				m.filter.Blur()
-				m.applyFilter()
-				return m, nil
 			case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
-				m.filtering = false
-				m.filter.Blur()
+				return m, tea.Quit
+			case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
+				m.showDetail = false
+				m.table.SetWidth(m.width)
+				m.table.SetHeight(m.height - 4)
+				m.resizeColumns()
 				return m, nil
-			default:
-				var cmd tea.Cmd
-				m.filter, cmd = m.filter.Update(msg)
-				m.applyFilter()
-				return m, cmd
+			case key.Matches(msg, key.NewBinding(key.WithKeys("ctrl+c"))):
+				m.result.Cancelled = true
+				return m, tea.Quit
 			}
+			var cmd tea.Cmd
+			m.detail, cmd = m.detail.Update(msg)
+			return m, cmd
 		}
 
 		switch {
-		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
+		case key.Matches(msg, key.NewBinding(key.WithKeys("ctrl+c"))):
 			m.result.Cancelled = true
 			return m, tea.Quit
 
 		case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
-			if m.showDetail {
-				m.showDetail = false
-				m.table.SetWidth(m.width)
-				m.table.SetHeight(m.height - 3)
-				m.resizeColumns()
-				return m, nil
-			}
 			if m.filter.Value() != "" {
 				m.filter.SetValue("")
 				m.applyFilter()
@@ -168,15 +160,15 @@ func (m taskPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.result.Cancelled = true
 			return m, tea.Quit
 
-		case key.Matches(msg, key.NewBinding(key.WithKeys("/"))):
-			m.filtering = true
-			m.filter.Focus()
-			return m, textinput.Blink
+		case key.Matches(msg, key.NewBinding(key.WithKeys("up"))):
+			m.table.MoveUp(1)
+			return m, nil
+
+		case key.Matches(msg, key.NewBinding(key.WithKeys("down"))):
+			m.table.MoveDown(1)
+			return m, nil
 
 		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
-			if m.showDetail {
-				return m, tea.Quit
-			}
 			cursor := m.table.Cursor()
 			if cursor >= 0 && cursor < len(m.filteredIdx) {
 				origIdx := m.filteredIdx[cursor]
@@ -192,18 +184,16 @@ func (m taskPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.detail.Height = m.height - 2
 				return m, nil
 			}
+
+		default:
+			var cmd tea.Cmd
+			m.filter, cmd = m.filter.Update(msg)
+			m.applyFilter()
+			return m, cmd
 		}
 	}
 
-	if m.showDetail {
-		var cmd tea.Cmd
-		m.detail, cmd = m.detail.Update(msg)
-		return m, cmd
-	}
-
-	var cmd tea.Cmd
-	m.table, cmd = m.table.Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 func (m *taskPickerModel) applyFilter() {
@@ -281,31 +271,21 @@ func (m taskPickerModel) View() string {
 		help.Width = m.width
 		help.Bindings = []components.KeyBinding{
 			{Key: "⏎", Help: "confirm"},
-			{Key: "esc", Help: "back to list"},
+			{Key: "esc", Help: "back"},
 			{Key: "↑↓", Help: "scroll"},
 		}
 		return lipgloss.NewStyle().Padding(0, 1).Render(m.detail.View()) + "\n" + help.View()
 	}
 
-	titleStyle := m.theme.Title.Padding(0, 0, 0, 1)
-	header := titleStyle.Render(m.title)
-
 	help := m.help
 	help.Width = m.width
 	help.Bindings = []components.KeyBinding{
 		{Key: "↑↓", Help: "navigate"},
-		{Key: "⏎", Help: "view details"},
-		{Key: "/", Help: "filter"},
+		{Key: "⏎", Help: "select"},
 		{Key: "esc", Help: "cancel"},
 	}
 
-	view := header + "\n"
-	if m.filtering || m.filter.Value() != "" {
-		view += m.filter.View() + "\n"
-	}
-	view += m.table.View() + "\n" + help.View()
-
-	return view
+	return m.filter.View() + "\n" + m.table.View() + "\n" + help.View()
 }
 
 // RunTaskPicker launches a Bubble Tea task picker and returns the selected task.

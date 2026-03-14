@@ -30,7 +30,6 @@ type projectPickerModel struct {
 	allRows     []table.Row
 	filteredIdx []int
 	result      ProjectPickerResult
-	filtering   bool
 	width       int
 	height      int
 	title       string
@@ -56,9 +55,10 @@ func newProjectPickerModel(t theme.Theme, projects []types.Project, title string
 	)
 
 	fi := textinput.New()
-	fi.Prompt = "/ "
+	fi.Prompt = "> "
 	fi.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(string(t.Palette.Primary)))
-	fi.Placeholder = "filter…"
+	fi.Placeholder = "type to filter…"
+	fi.Focus()
 
 	return projectPickerModel{
 		theme:       t,
@@ -73,7 +73,7 @@ func newProjectPickerModel(t theme.Theme, projects []types.Project, title string
 }
 
 func (m projectPickerModel) Init() tea.Cmd {
-	return nil
+	return textinput.Blink
 }
 
 func (m projectPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -82,33 +82,13 @@ func (m projectPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.table.SetWidth(m.width)
-		m.table.SetHeight(m.height - 3)
+		m.table.SetHeight(m.height - 4)
 		m.resizeColumns()
 		return m, nil
 
 	case tea.KeyMsg:
-		if m.filtering {
-			switch {
-			case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
-				m.filtering = false
-				m.filter.SetValue("")
-				m.filter.Blur()
-				m.applyFilter()
-				return m, nil
-			case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
-				m.filtering = false
-				m.filter.Blur()
-				return m, nil
-			default:
-				var cmd tea.Cmd
-				m.filter, cmd = m.filter.Update(msg)
-				m.applyFilter()
-				return m, cmd
-			}
-		}
-
 		switch {
-		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
+		case key.Matches(msg, key.NewBinding(key.WithKeys("ctrl+c"))):
 			m.result.Cancelled = true
 			return m, tea.Quit
 
@@ -121,10 +101,13 @@ func (m projectPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.result.Cancelled = true
 			return m, tea.Quit
 
-		case key.Matches(msg, key.NewBinding(key.WithKeys("/"))):
-			m.filtering = true
-			m.filter.Focus()
-			return m, textinput.Blink
+		case key.Matches(msg, key.NewBinding(key.WithKeys("up"))):
+			m.table.MoveUp(1)
+			return m, nil
+
+		case key.Matches(msg, key.NewBinding(key.WithKeys("down"))):
+			m.table.MoveDown(1)
+			return m, nil
 
 		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
 			cursor := m.table.Cursor()
@@ -132,12 +115,16 @@ func (m projectPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.result.Project = m.projects[m.filteredIdx[cursor]]
 				return m, tea.Quit
 			}
+
+		default:
+			var cmd tea.Cmd
+			m.filter, cmd = m.filter.Update(msg)
+			m.applyFilter()
+			return m, cmd
 		}
 	}
 
-	var cmd tea.Cmd
-	m.table, cmd = m.table.Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 func (m *projectPickerModel) applyFilter() {
@@ -201,25 +188,15 @@ func (m projectPickerModel) View() string {
 		return ""
 	}
 
-	titleStyle := m.theme.Title.Padding(0, 0, 0, 1)
-	header := titleStyle.Render(m.title)
-
 	help := m.help
 	help.Width = m.width
 	help.Bindings = []components.KeyBinding{
 		{Key: "↑↓", Help: "navigate"},
 		{Key: "⏎", Help: "select"},
-		{Key: "/", Help: "filter"},
 		{Key: "esc", Help: "cancel"},
 	}
 
-	view := header + "\n"
-	if m.filtering || m.filter.Value() != "" {
-		view += m.filter.View() + "\n"
-	}
-	view += m.table.View() + "\n" + help.View()
-
-	return view
+	return m.filter.View() + "\n" + m.table.View() + "\n" + help.View()
 }
 
 // RunProjectPicker launches a Bubble Tea project picker and returns the selected project.
