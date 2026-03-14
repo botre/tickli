@@ -4,8 +4,8 @@ A beautiful command line interface for TickTick task management, built with [Cha
 
 ## Features
 
-- Full-screen interactive TUI dashboard (`tickli tui`) with keyboard navigation
-- Gorgeous interactive forms for task and project creation (powered by [Huh](https://github.com/charmbracelet/huh))
+- Interactive forms for task and project creation with multi-step wizards, project/tag selectors (powered by [Huh](https://github.com/charmbracelet/huh))
+- Themed table pickers for task and project selection (powered by [Bubble Tea](https://github.com/charmbracelet/bubbletea))
 - Consistent, themed output across all commands (powered by [Lip Gloss](https://github.com/charmbracelet/lipgloss))
 - Smart views: today, tomorrow, next 7 days, inbox, and all tasks across all projects
 - Create, update, move, complete, uncomplete, and delete tasks
@@ -14,7 +14,6 @@ A beautiful command line interface for TickTick task management, built with [Cha
 - Set dates, priorities, tags, and content on tasks
 - All-day task support with automatic time stripping
 - Filter tasks by priority, tags, and due date window
-- Interactive fuzzy-search selection for tasks and projects (auto-disabled when piped)
 - Three-tier output: human-readable, JSON, and quiet (IDs only) for scripting
 - Global `--json` and `--quiet` flags override per-command `-o` for wrapper scripts
 - Single-task commands auto-search all projects, so no `--project` flag is needed
@@ -83,7 +82,6 @@ tickli task uncomplete <task-id>
 | `tickli init`     | Initialize tickli                        |
 | `tickli reset`    | Reset authentication (`--force`/`-f` to skip confirmation) |
 | `tickli version`  | Show the version                         |
-| `tickli tui`      | Launch the interactive TUI dashboard     |
 
 ### Smart Views
 
@@ -173,6 +171,31 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | `--no-color`      |       | Disable color output (also respects `NO_COLOR` env) |
 | `--project`       | `-P`  | Project context for task list and create (ID)      |
 
+## Interactive Mode
+
+Commands that support `--interactive` (`-i`) use multi-step form wizards:
+
+```bash
+# Create a task interactively (project picker, title, content, priority, date, tags)
+tickli task create -i
+
+# Create a project interactively
+tickli project create -i
+
+# Update a task interactively
+tickli task update <task-id> -i
+```
+
+The task creation wizard includes:
+- **Project selector** with type-to-filter (default project pinned to top)
+- **Inline project creation** via "+ Create new project" option
+- **Tag multi-select** from existing tags across all projects, with type-to-filter
+- **Inline tag creation** for new tags
+
+List commands (`task list`, `project list`, `today`, `project use`, etc.) use themed table pickers when running in a terminal.
+
+Destructive operations (delete, reset) use styled confirmation prompts showing the item name.
+
 ## Scripting
 
 Tickli is designed to work well in scripts and with other tools.
@@ -217,7 +240,7 @@ tickli task update <task-id> --all-day=false
 tickli task create -t "Call" --start "2025-03-14T10:00:00+02:00" --due "2025-03-14T11:00:00+0200"
 
 # Non-interactive fallback: piped/redirected output auto-detects non-TTY
-tickli today | cat              # prints tab-separated rows instead of fuzzy selector
+tickli today | cat              # prints tab-separated rows instead of table picker
 tickli today | cut -f3          # extract just the title column
 
 # Duration field in JSON: computed from start/due when both are set
@@ -273,53 +296,11 @@ tickli completion fish > ~/.config/fish/completions/tickli.fish
 
 Restart your shell after installing.
 
-## Interactive TUI
-
-Launch the full-screen interactive dashboard with `tickli tui`. The TUI provides:
-
-- **Smart view tabs** — switch between Today, Tomorrow, Week, Inbox, and All views with `1`–`5`
-- **Task browsing** — navigate tasks with arrow keys, view details with `Enter`
-- **Project browser** — press `p` to browse projects, `Enter` to see a project's tasks
-- **Inline completion** — mark tasks done with `x` without leaving the TUI
-- **Fuzzy filtering** — press `/` to filter tasks by title
-- **Live refresh** — press `r` to refresh data from TickTick
-
-### TUI Keybindings
-
-| Key       | Action                    |
-| --------- | ------------------------- |
-| `1`–`5`   | Switch smart view         |
-| `↑`/`↓`   | Navigate list             |
-| `Enter`   | View task details         |
-| `/`       | Filter tasks              |
-| `x`       | Complete selected task    |
-| `p`       | Browse projects           |
-| `r`       | Refresh data              |
-| `Esc`     | Go back                   |
-| `q`       | Quit                      |
-
-### Interactive Forms
-
-Commands that support `--interactive` (`-i`) now use gorgeous form UIs powered by [Huh](https://github.com/charmbracelet/huh):
-
-```bash
-# Create a task with the interactive form
-tickli task create -i
-
-# Create a project interactively
-tickli project create -i
-
-# Update a task interactively
-tickli task update <task-id> -i
-```
-
-Destructive operations (delete, reset) use styled confirmation prompts.
-
 ## Design Philosophy
 
 Tickli is built to serve two audiences equally: humans at a terminal and AI agents (or scripts) driving it programmatically.
 
-**Graceful degradation, not separate modes.** When stdin is a TTY, commands present an interactive fuzzy selector. When piped or redirected, they automatically fall back to machine-friendly tab-separated output. No extra flag is needed -the right behavior is inferred from context.
+**Graceful degradation, not separate modes.** When stdin is a TTY, commands present an interactive picker. When piped or redirected, they automatically fall back to machine-friendly tab-separated output. No extra flag is needed — the right behavior is inferred from context.
 
 **Consistent, predictable JSON.** Every mutating command (`create`, `update`, `complete`, `uncomplete`, `move`, `delete`) returns the full task object in `--json` mode, not a minimal acknowledgement. Scripts can always parse the same shape. Computed fields like `duration` are included so callers don't need to recompute.
 
@@ -344,6 +325,3 @@ Tickli is built to serve two audiences equally: humans at a terminal and AI agen
 **One theme, everywhere.** Every piece of styled output draws from a single `Theme` struct. Change the palette once and the entire CLI updates — task lists, detail views, forms, status bars. No orphaned color constants.
 
 **Every pixel earns its place.** UI chrome (borders, padding, icons) exists to aid scanning, not to decorate. A priority flag is a single colored glyph. A due date uses one word ("tomorrow"), not a timestamp. Information density is a feature.
-
-**Keyboard-first, mouse-optional.** The TUI is designed around single-key navigation. Every action is reachable without chords or menus. Discoverability comes from the help bar, not from exploration.
-
