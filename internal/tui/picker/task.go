@@ -226,7 +226,7 @@ func (m taskPickerModel) View() string {
 		return lipgloss.NewStyle().Padding(0, 1).Render(m.detail.View()) + "\n" + help.View()
 	}
 
-	titleStyle := m.theme.Title.Padding(0, 0, 1, 1)
+	titleStyle := m.theme.Title.Padding(0, 0, 0, 1)
 	header := titleStyle.Render(m.title)
 
 	help := m.help

@@ -136,7 +136,7 @@ func (m projectPickerModel) View() string {
 		return ""
 	}
 
-	titleStyle := m.theme.Title.Padding(0, 0, 1, 1)
+	titleStyle := m.theme.Title.Padding(0, 0, 0, 1)
 	header := titleStyle.Render(m.title)
 
 	help := m.help
