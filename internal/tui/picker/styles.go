@@ -33,7 +33,7 @@ func fuzzyMatchRow(row table.Row, query string) bool {
 }
 
 func tableStyles(t theme.Theme) table.Styles {
-	s := table.DefaultStyles()
+	var s table.Styles
 	s.Header = lipgloss.NewStyle().
 		Foreground(lipgloss.Color(string(t.Palette.SubText))).
 		Bold(true).
