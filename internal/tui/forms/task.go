@@ -66,6 +66,13 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 		sorted := make([]types.Project, len(projects))
 		copy(sorted, projects)
 		sort.Slice(sorted, func(i, j int) bool {
+			// Pin the current/default project to the top
+			if sorted[i].ID == result.Project {
+				return true
+			}
+			if sorted[j].ID == result.Project {
+				return false
+			}
 			return strings.ToLower(sorted[i].Name) < strings.ToLower(sorted[j].Name)
 		})
 		opts := make([]huh.Option[string], len(sorted))

@@ -80,17 +80,13 @@ Changes only the properties you specify - others remain unchanged.`,
 				if !prompt.IsInteractive() {
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
-				// Collect known tags for the multi-select
+				// Collect tags from the task's project only (avoids rate limits)
 				var knownTags []string
-				allProjects, listErr := client.ListProjects()
-				if listErr == nil {
-					for _, proj := range allProjects {
-						tasks, taskErr := client.ListTasks(proj.ID)
-						if taskErr == nil {
-							knownTags = append(knownTags, forms.CollectTags(tasks)...)
-						}
+				if t.ProjectID != "" {
+					tasks, taskErr := client.ListTasks(t.ProjectID)
+					if taskErr == nil {
+						knownTags = forms.CollectTags(tasks)
 					}
-					knownTags = dedupStrings(knownTags)
 				}
 				th := theme.Default()
 				result, formErr := forms.RunTaskUpdateForm(th, forms.TaskFormResult{

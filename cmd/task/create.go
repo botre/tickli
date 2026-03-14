@@ -81,17 +81,15 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				if listErr != nil {
 					return fmt.Errorf("failed to fetch projects: %w", listErr)
 				}
-				projects := allProjects
 
-				// Collect known tags from all projects for the multi-select
+				// Collect tags from the current project only (avoids rate limits)
 				var knownTags []string
-				for _, proj := range allProjects {
-					tasks, taskErr := client.ListTasks(proj.ID)
+				if opts.projectID != "" {
+					tasks, taskErr := client.ListTasks(opts.projectID)
 					if taskErr == nil {
-						knownTags = append(knownTags, forms.CollectTags(tasks)...)
+						knownTags = forms.CollectTags(tasks)
 					}
 				}
-				knownTags = dedupStrings(knownTags)
 
 				t := theme.Default()
 				result, err := forms.RunTaskCreateForm(t, forms.TaskFormResult{
@@ -100,7 +98,7 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 					Priority: opts.priority,
 					Date:     opts.date,
 					Project:  opts.projectID,
-				}, projects, knownTags)
+				}, allProjects, knownTags)
 				if err != nil {
 					return fmt.Errorf("form cancelled: %w", err)
 				}
