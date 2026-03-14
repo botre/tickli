@@ -63,15 +63,21 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 
 	// Step 1: Project selection (if applicable)
 	if len(projects) > 0 {
-		opts := make([]huh.Option[string], len(projects))
-		for i, p := range projects {
+		sorted := make([]types.Project, len(projects))
+		copy(sorted, projects)
+		sort.Slice(sorted, func(i, j int) bool {
+			return strings.ToLower(sorted[i].Name) < strings.ToLower(sorted[j].Name)
+		})
+		opts := make([]huh.Option[string], len(sorted))
+		for i, p := range sorted {
 			opts[i] = huh.NewOption(p.Name, p.ID)
 		}
 		groups = append(groups, huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Project").
-				Description("Which project does this belong to?").
+				Description("Which project does this belong to? (type to filter)").
 				Options(opts...).
+				Filtering(true).
 				Value(&result.Project),
 		))
 	}
@@ -127,8 +133,9 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 		groups = append(groups, huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title("Tags").
-				Description("Select existing tags").
+				Description("Select existing tags (type to filter)").
 				Options(tagOpts...).
+				Filterable(true).
 				Value(&selectedTags),
 			huh.NewInput().
 				Title("New Tags").
