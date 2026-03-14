@@ -133,14 +133,14 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 
 ## Interactive Mode
 
-List commands (`today`, `task list`, `project list`, `project use`) open a table picker when running in a terminal. Press `/` to filter, `↑↓` to navigate, `Enter` to select, `Esc` to cancel.
+List commands (`today`, `task list`, `project list`, `project use`) open a table picker when running in a terminal. Typing filters results immediately (fzf-style), `↑↓` to navigate, `Enter` to select, `Esc` to clear filter or cancel. The task picker includes a preview pane that shows details of the selected task.
 
 Commands that support `--interactive` (`-i`) use multi-step form wizards:
 
 ```bash
 tickli task create -i      # project → title → content → priority → date → tags
 tickli task update <id> -i
-tickli project create -i   # name → color/view mode → type
+tickli project create -i   # name → color → view mode → type
 ```
 
 The task creation wizard includes a project selector with type-to-filter and inline "+ Create new project", a tag multi-select from existing tags across all projects, and an inline input for new tags.
