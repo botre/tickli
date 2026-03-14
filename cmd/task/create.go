@@ -71,33 +71,48 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 			opts.projectID = projectID
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if opts.projectID == "" {
-				return fmt.Errorf("no project selected. Use -P <project> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
-			}
-
-			resolvedProject, err := client.ResolveProject(opts.projectID)
-			if err != nil {
-				return err
-			}
-			opts.projectID = resolvedProject.ID
-
 			if opts.interactive {
 				if !prompt.IsInteractive() {
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
+
+				// Fetch projects for the picker if no project is pre-selected
+				var projects []types.Project
+				allProjects, listErr := client.ListProjects()
+				if listErr != nil {
+					return fmt.Errorf("failed to fetch projects: %w", listErr)
+				}
+				if opts.projectID == "" {
+					projects = allProjects
+				}
+
+				// Collect known tags from all projects for the multi-select
+				var knownTags []string
+				for _, proj := range allProjects {
+					tasks, taskErr := client.ListTasks(proj.ID)
+					if taskErr == nil {
+						knownTags = append(knownTags, forms.CollectTags(tasks)...)
+					}
+				}
+				knownTags = dedupStrings(knownTags)
+
 				t := theme.Default()
 				result, err := forms.RunTaskCreateForm(t, forms.TaskFormResult{
 					Title:    opts.title,
 					Content:  opts.content,
 					Priority: opts.priority,
 					Date:     opts.date,
-				})
+					Project:  opts.projectID,
+				}, projects, knownTags)
 				if err != nil {
 					return fmt.Errorf("form cancelled: %w", err)
 				}
 				opts.title = result.Title
 				opts.content = result.Content
 				opts.priority = result.Priority
+				if result.Project != "" {
+					opts.projectID = result.Project
+				}
 				if result.Date != "" {
 					opts.date = result.Date
 				}
@@ -110,6 +125,16 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 					}
 				}
 			}
+
+			if opts.projectID == "" {
+				return fmt.Errorf("no project selected. Use -P <project> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
+			}
+
+			resolvedProject, err := client.ResolveProject(opts.projectID)
+			if err != nil {
+				return err
+			}
+			opts.projectID = resolvedProject.ID
 
 			t := &types.Task{
 				ProjectID: opts.projectID,
@@ -204,4 +229,16 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	cmd.MarkFlagsOneRequired("title", "interactive")
 
 	return cmd
+}
+
+func dedupStrings(s []string) []string {
+	seen := make(map[string]bool)
+	var out []string
+	for _, v := range s {
+		if !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
+	return out
 }

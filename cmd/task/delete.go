@@ -43,10 +43,16 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 			opts.taskID = args[0]
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Fetch task so we can show its title in confirmation and JSON output
+			t, getErr := client.GetTask(opts.taskID)
+			if getErr != nil {
+				return errors.Wrap(getErr, fmt.Sprintf("failed to get task %q", opts.taskID))
+			}
+
 			if !opts.force && prompt.IsInteractive() {
 				confirmed, err := forms.RunConfirm(
-					"Delete task?",
-					fmt.Sprintf("Are you sure you want to delete task %s? This cannot be undone.", opts.taskID),
+					fmt.Sprintf("Delete \"%s\"?", t.Title),
+					"This cannot be undone.",
 				)
 				if err != nil || !confirmed {
 					fmt.Println("Deletion aborted")
@@ -54,13 +60,8 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 				}
 			}
 
-			// Fetch task before deletion so JSON output can return the full object
 			var taskSnapshot *types.Task
 			if resolveOutput(cmd, opts.output) == types.OutputJSON {
-				t, getErr := client.GetTask(opts.taskID)
-				if getErr != nil {
-					return errors.Wrap(getErr, fmt.Sprintf("failed to get task %q", opts.taskID))
-				}
 				taskSnapshot = t
 			}
 

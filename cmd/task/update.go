@@ -80,13 +80,25 @@ Changes only the properties you specify - others remain unchanged.`,
 				if !prompt.IsInteractive() {
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
+				// Collect known tags for the multi-select
+				var knownTags []string
+				allProjects, listErr := client.ListProjects()
+				if listErr == nil {
+					for _, proj := range allProjects {
+						tasks, taskErr := client.ListTasks(proj.ID)
+						if taskErr == nil {
+							knownTags = append(knownTags, forms.CollectTags(tasks)...)
+						}
+					}
+					knownTags = dedupStrings(knownTags)
+				}
 				th := theme.Default()
 				result, formErr := forms.RunTaskUpdateForm(th, forms.TaskFormResult{
 					Title:    t.Title,
 					Content:  t.Content,
 					Priority: t.Priority,
 					Tags:     strings.Join(t.Tags, ", "),
-				})
+				}, knownTags)
 				if formErr != nil {
 					return fmt.Errorf("form cancelled: %w", formErr)
 				}

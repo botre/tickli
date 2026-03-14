@@ -47,8 +47,8 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 
 			if !opts.force && prompt.IsInteractive() {
 				confirmed, err := forms.RunConfirm(
-					"Delete project?",
-					fmt.Sprintf("Are you sure you want to delete %q? This cannot be undone.", resolvedProject.Name),
+					fmt.Sprintf("Delete \"%s\"?", resolvedProject.Name),
+					"All tasks in this project will be lost. This cannot be undone.",
 				)
 				if err != nil || !confirmed {
 					fmt.Println("Deletion aborted")
