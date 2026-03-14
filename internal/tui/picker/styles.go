@@ -41,11 +41,9 @@ func tableStyles(t theme.Theme) table.Styles {
 		BorderForeground(lipgloss.Color(string(t.Palette.Subtle))).
 		BorderBottom(true).
 		Padding(0, 1)
-	s.Selected = lipgloss.NewStyle().
-		Foreground(lipgloss.Color(string(t.Palette.Primary))).
-		Bold(true).
-		Padding(0, 1)
-	s.Cell = lipgloss.NewStyle().
-		Padding(0, 1)
+	cell := lipgloss.NewStyle().Padding(0, 1)
+	s.Cell = cell
+	s.Selected = cell.
+		Foreground(lipgloss.Color(string(t.Palette.Primary)))
 	return s
 }
