@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/go-resty/resty/v2"
@@ -338,6 +340,7 @@ func (c *Client) ListTasks(projectID string) ([]types.Task, error) {
 		return nil, fmt.Errorf("failed to list tasks: %s", apiErrorMessage(resp.String()))
 	}
 
+	sortTasksByDueDate(projectData.Tasks)
 	return projectData.Tasks, nil
 }
 
@@ -359,7 +362,26 @@ func (c *Client) GetProjectWithTasks(projectID string) (*types.ProjectData, erro
 		projectData.Project = types.InboxProject
 	}
 
+	sortTasksByDueDate(projectData.Tasks)
 	return &projectData, nil
+}
+
+// sortTasksByDueDate sorts tasks by due date ascending, with no-date tasks at the end.
+func sortTasksByDueDate(tasks []types.Task) {
+	sort.SliceStable(tasks, func(i, j int) bool {
+		di := time.Time(tasks[i].DueDate)
+		dj := time.Time(tasks[j].DueDate)
+		if di.IsZero() && dj.IsZero() {
+			return false
+		}
+		if di.IsZero() {
+			return false
+		}
+		if dj.IsZero() {
+			return true
+		}
+		return di.Before(dj)
+	})
 }
 
 func (c *Client) CreateTask(task *types.Task) (*types.Task, error) {

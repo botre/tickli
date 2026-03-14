@@ -3,7 +3,6 @@ package view
 import (
 	"fmt"
 	"os"
-	"sort"
 	"sync"
 	"time"
 
@@ -89,7 +88,6 @@ func fetchAllTasks(client *api.Client) ([]projectTask, error) {
 		}
 	}
 
-	sortProjectTasksByDueDate(all)
 	return all, nil
 }
 
@@ -159,23 +157,6 @@ func filterByOpts(tasks []projectTask, opts *viewOptions) []projectTask {
 		result = append(result, t)
 	}
 	return result
-}
-
-func sortProjectTasksByDueDate(tasks []projectTask) {
-	sort.SliceStable(tasks, func(i, j int) bool {
-		di := time.Time(tasks[i].DueDate)
-		dj := time.Time(tasks[j].DueDate)
-		if di.IsZero() && dj.IsZero() {
-			return false
-		}
-		if di.IsZero() {
-			return false
-		}
-		if dj.IsZero() {
-			return true
-		}
-		return di.Before(dj)
-	})
 }
 
 func getProjectTaskDescription(t projectTask) string {
