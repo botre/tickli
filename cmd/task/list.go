@@ -7,15 +7,18 @@ import (
 	"os"
 	"time"
 
+	"slices"
+
 	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/picker"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
-	"slices"
 )
 
 type listOptions struct {
@@ -238,11 +241,13 @@ tags, and due date. Results are displayed in an interactive selector.`,
 					utils.PrintTasksSimple(filteredTasks)
 					return nil
 				}
-				t, err := utils.FuzzySelectTask(filteredTasks, projectColor, "")
+				_ = projectColor // color now handled by themed picker
+				result, err := picker.RunTaskPicker(filteredTasks, nil, "Select Task")
 				if err != nil {
 					return fmt.Errorf("failed to select task: %w", err)
 				}
-				fmt.Println(utils.GetTaskDescription(t, projectColor))
+				r := render.New()
+				fmt.Println(r.TaskDetail(result.Task, result.ProjectName))
 			}
 			return nil
 		},

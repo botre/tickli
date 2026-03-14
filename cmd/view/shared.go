@@ -8,12 +8,12 @@ import (
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/picker"
 	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
-	"github.com/ktr0731/go-fuzzyfinder"
 	"github.com/spf13/cobra"
 )
 
@@ -217,26 +217,25 @@ func printProjectTaskIDs(tasks []projectTask) {
 	}
 }
 
-func fuzzySelectProjectTask(tasks []projectTask, query string) (projectTask, error) {
+func fuzzySelectProjectTask(tasks []projectTask, _ string) (projectTask, error) {
 	if len(tasks) == 0 {
 		return projectTask{}, fmt.Errorf("no tasks found")
 	}
-	idx, err := fuzzyfinder.Find(
-		tasks,
-		func(i int) string {
-			return fmt.Sprintf("[%s] %s", tasks[i].ProjectName, tasks[i].Title)
-		},
-		fuzzyfinder.WithQuery(query),
-		fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
-			if i == -1 {
-				return ""
-			}
-			return getProjectTaskDescription(tasks[i])
-		}),
-		fuzzyfinder.WithPromptString("Search Tasks: "),
-	)
+	plainTasks := make([]types.Task, len(tasks))
+	names := make([]string, len(tasks))
+	for i, t := range tasks {
+		plainTasks[i] = t.Task
+		names[i] = t.ProjectName
+	}
+	result, err := picker.RunTaskPicker(plainTasks, names, "Select Task")
 	if err != nil {
 		return projectTask{}, err
 	}
-	return tasks[idx], nil
+	// Find the original projectTask to preserve ProjectColor
+	for _, t := range tasks {
+		if t.ID == result.Task.ID {
+			return t, nil
+		}
+	}
+	return projectTask{}, fmt.Errorf("selected task not found")
 }

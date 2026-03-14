@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ktr0731/go-fuzzyfinder"
 	"golang.org/x/term"
 )
 
@@ -35,16 +34,3 @@ func String(label, defaultVal string) string {
 	return input
 }
 
-// Select presents a fuzzy-finder list and returns the chosen index.
-// items are the display strings shown to the user.
-func Select(promptLabel string, items []string) (int, error) {
-	idx, err := fuzzyfinder.Find(
-		items,
-		func(i int) string { return items[i] },
-		fuzzyfinder.WithPromptString(promptLabel+" "),
-	)
-	if err != nil {
-		return -1, err
-	}
-	return idx, nil
-}
