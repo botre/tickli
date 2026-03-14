@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/config"
 	"github.com/botre/tickli/internal/prompt"
 	"github.com/botre/tickli/internal/tui/forms"
 	"github.com/botre/tickli/internal/tui/render"
@@ -55,9 +56,15 @@ supports both direct parameter input and interactive mode.`,
 				if kindStr == "" {
 					kindStr = "TASK"
 				}
+				defaultColor := opts.color.String()
+				if defaultColor == "" {
+					if cfg, err := config.Load(); err == nil && cfg.DefaultProjectColor != "" {
+						defaultColor = cfg.DefaultProjectColor
+					}
+				}
 				result, err := forms.RunProjectCreateForm(t, forms.ProjectFormResult{
 					Name:     opts.name,
-					Color:    opts.color.String(),
+					Color:    defaultColor,
 					ViewMode: string(opts.viewMode),
 					Kind:     kindStr,
 				})
