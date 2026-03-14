@@ -8,6 +8,9 @@ import (
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/forms"
+	"github.com/botre/tickli/internal/tui/render"
+	"github.com/botre/tickli/internal/tui/theme"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
@@ -68,6 +71,65 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 			opts.projectID = projectID
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if opts.interactive {
+				if !prompt.IsInteractive() {
+					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
+				}
+
+				// Always show project picker in interactive mode
+				allProjects, listErr := client.ListProjects()
+				if listErr != nil {
+					return fmt.Errorf("failed to fetch projects: %w", listErr)
+				}
+
+				// Collect tags from all projects concurrently
+				projectIDs := make([]string, len(allProjects))
+				for i, p := range allProjects {
+					projectIDs[i] = p.ID
+				}
+				knownTags := forms.CollectAllTags(projectIDs, func(pid string) ([]types.Task, error) {
+					return client.ListTasks(pid)
+				})
+
+				t := theme.Default()
+				result, err := forms.RunTaskCreateForm(t, forms.TaskFormResult{
+					Title:    opts.title,
+					Content:  opts.content,
+					Priority: opts.priority,
+					Date:     opts.date,
+					Project:  opts.projectID,
+				}, allProjects, knownTags)
+				if err != nil {
+					return fmt.Errorf("form cancelled: %w", err)
+				}
+
+				// Handle inline project creation
+				if result.NewProjectName != "" {
+					newProj, createErr := client.CreateProject(&types.Project{Name: result.NewProjectName})
+					if createErr != nil {
+						return fmt.Errorf("failed to create project: %w", createErr)
+					}
+					opts.projectID = newProj.ID
+				} else if result.Project != "" {
+					opts.projectID = result.Project
+				}
+
+				opts.title = result.Title
+				opts.content = result.Content
+				opts.priority = result.Priority
+				if result.Date != "" {
+					opts.date = result.Date
+				}
+				if result.Tags != "" {
+					for _, tag := range strings.Split(result.Tags, ",") {
+						tag = strings.TrimSpace(tag)
+						if tag != "" {
+							opts.tags = append(opts.tags, tag)
+						}
+					}
+				}
+			}
+
 			if opts.projectID == "" {
 				return fmt.Errorf("no project selected. Use -P <project> or run 'tickli project use' to set a default.\nRun 'tickli project list -o json' to see available projects")
 			}
@@ -77,38 +139,6 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				return err
 			}
 			opts.projectID = resolvedProject.ID
-
-			if opts.interactive {
-				if !prompt.IsInteractive() {
-					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
-				}
-				opts.title = prompt.String("Title", opts.title)
-				if opts.title == "" {
-					return fmt.Errorf("title is required")
-				}
-				opts.content = prompt.String("Content", opts.content)
-
-				priorities := []string{"none", "low", "medium", "high"}
-				idx, err := prompt.Select("Priority:", priorities)
-				if err == nil {
-					_ = opts.priority.Set(priorities[idx])
-				}
-
-				dateInput := prompt.String("Date (e.g. 'tomorrow 2pm')", "")
-				if dateInput != "" {
-					opts.date = dateInput
-				}
-
-				tagsInput := prompt.String("Tags (comma-separated)", "")
-				if tagsInput != "" {
-					for _, tag := range strings.Split(tagsInput, ",") {
-						tag = strings.TrimSpace(tag)
-						if tag != "" {
-							opts.tags = append(opts.tags, tag)
-						}
-					}
-				}
-			}
 
 			t := &types.Task{
 				ProjectID: opts.projectID,
@@ -172,7 +202,8 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 			case types.OutputQuiet:
 				fmt.Println(t.ID)
 			default:
-				fmt.Printf("Created task %s\n", t.ID)
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Created task %s", t.ID)))
 			}
 			return nil
 		},
@@ -203,3 +234,4 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 
 	return cmd
 }
+

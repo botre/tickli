@@ -3,16 +3,16 @@ package view
 import (
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/picker"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
-	"github.com/ktr0731/go-fuzzyfinder"
 	"github.com/spf13/cobra"
 )
 
@@ -45,46 +45,31 @@ func resolveOutput(cmd *cobra.Command, output types.OutputFormat) types.OutputFo
 }
 
 func fetchAllTasks(client *api.Client) ([]projectTask, error) {
+	// Two API calls: one for projects (name lookup), one for all tasks
 	projects, err := client.ListProjects()
 	if err != nil {
 		return nil, fmt.Errorf("listing projects: %w", err)
 	}
 
-	type result struct {
-		tasks   []types.Task
-		project types.Project
-		err     error
-	}
-
-	ch := make(chan result, len(projects))
-	var wg sync.WaitGroup
-
+	projectMap := make(map[string]types.Project, len(projects)+1)
+	projectMap[types.InboxProject.ID] = types.InboxProject
 	for _, p := range projects {
-		wg.Add(1)
-		go func(proj types.Project) {
-			defer wg.Done()
-			tasks, err := client.ListTasks(proj.ID)
-			ch <- result{tasks: tasks, project: proj, err: err}
-		}(p)
+		projectMap[p.ID] = p
 	}
 
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
+	tasks, err := client.FilterTasks(api.TaskFilter{})
+	if err != nil {
+		return nil, fmt.Errorf("fetching tasks: %w", err)
+	}
 
 	var all []projectTask
-	for r := range ch {
-		if r.err != nil {
-			continue
-		}
-		for _, t := range r.tasks {
-			all = append(all, projectTask{
-				Task:         t,
-				ProjectName:  r.project.Name,
-				ProjectColor: r.project.Color,
-			})
-		}
+	for _, t := range tasks {
+		p := projectMap[t.ProjectID]
+		all = append(all, projectTask{
+			Task:         t,
+			ProjectName:  p.Name,
+			ProjectColor: p.Color,
+		})
 	}
 
 	return all, nil
@@ -159,35 +144,8 @@ func filterByOpts(tasks []projectTask, opts *viewOptions) []projectTask {
 }
 
 func getProjectTaskDescription(t projectTask) string {
-	projectLine := t.ProjectColor.Sprint("----------------------")
-
-	lines := fmt.Sprintf(`
-Task Details:
-
-%s %s
-%s`,
-		t.Status.ColorString(),
-		projectLine,
-		t.Title,
-	)
-
-	if t.Content != "" {
-		lines += fmt.Sprintf("\nContent: %s", t.Content)
-	}
-	lines += fmt.Sprintf("\nPriority: %s", t.Priority.ColorString())
-	lines += fmt.Sprintf("\nProject: %s", t.ProjectName)
-
-	if s := formatTime(t.StartDate); s != "" {
-		lines += fmt.Sprintf("\nStart: %s", s)
-	}
-	if s := formatTime(t.DueDate); s != "" {
-		lines += fmt.Sprintf("\nDue: %s", s)
-	}
-	if len(t.Tags) > 0 {
-		lines += fmt.Sprintf("\nTags: %v", t.Tags)
-	}
-
-	return lines
+	r := render.New()
+	return r.TaskDetail(t.Task, t.ProjectName)
 }
 
 func formatTime(t types.TickTickTime) string {
@@ -212,13 +170,25 @@ func printProjectTasksSimple(tasks []projectTask) {
 		fmt.Fprintln(os.Stderr, "No tasks found")
 		return
 	}
-	for _, t := range tasks {
-		due := formatTime(t.DueDate)
-		if due == "" {
-			due = "no due date"
+	if !isInteractive() {
+		// Piped: tab-separated for scripting
+		for _, t := range tasks {
+			due := formatTime(t.DueDate)
+			if due == "" {
+				due = "no due date"
+			}
+			fmt.Printf("%s\t[%s]\t%s\t%s\t%s\n", t.ID, t.ProjectName, t.Title, t.Priority, due)
 		}
-		fmt.Printf("%s\t[%s]\t%s\t%s\t%s\n", t.ID, t.ProjectName, t.Title, t.Priority, due)
+		return
 	}
+	r := render.New()
+	plainTasks := make([]types.Task, len(tasks))
+	names := make([]string, len(tasks))
+	for i, t := range tasks {
+		plainTasks[i] = t.Task
+		names[i] = t.ProjectName
+	}
+	fmt.Println(r.TaskListWithProjects(plainTasks, names))
 }
 
 func printProjectTaskIDs(tasks []projectTask) {
@@ -231,26 +201,25 @@ func printProjectTaskIDs(tasks []projectTask) {
 	}
 }
 
-func fuzzySelectProjectTask(tasks []projectTask, query string) (projectTask, error) {
+func fuzzySelectProjectTask(tasks []projectTask, _ string) (projectTask, bool, error) {
 	if len(tasks) == 0 {
-		return projectTask{}, fmt.Errorf("no tasks found")
+		return projectTask{}, false, nil
 	}
-	idx, err := fuzzyfinder.Find(
-		tasks,
-		func(i int) string {
-			return fmt.Sprintf("[%s] %s", tasks[i].ProjectName, tasks[i].Title)
-		},
-		fuzzyfinder.WithQuery(query),
-		fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
-			if i == -1 {
-				return ""
-			}
-			return getProjectTaskDescription(tasks[i])
-		}),
-		fuzzyfinder.WithPromptString("Search Tasks: "),
-	)
+	plainTasks := make([]types.Task, len(tasks))
+	names := make([]string, len(tasks))
+	for i, t := range tasks {
+		plainTasks[i] = t.Task
+		names[i] = t.ProjectName
+	}
+	result, err := picker.RunTaskPicker(plainTasks, names, "Select Task")
 	if err != nil {
-		return projectTask{}, err
+		return projectTask{}, false, err
 	}
-	return tasks[idx], nil
+	// Find the original projectTask to preserve ProjectColor
+	for _, t := range tasks {
+		if t.ID == result.Task.ID {
+			return t, true, nil
+		}
+	}
+	return projectTask{}, false, fmt.Errorf("selected task not found")
 }

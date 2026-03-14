@@ -1,21 +1,21 @@
 package task
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/picker"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
-	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/spf13/cobra"
-	"slices"
 )
 
 type listOptions struct {
@@ -26,65 +26,6 @@ type listOptions struct {
 	tag       string
 	projectID string
 	output    types.OutputFormat
-}
-
-func fetchProjectColor(client *api.Client, projectID string) project.Color {
-	p, err := client.GetProject(projectID)
-	if err != nil {
-		return project.DefaultColor
-	}
-	return p.Color
-}
-
-func fetchProjectColorAsync(ctx context.Context, client *api.Client, projectID string) <-chan project.Color {
-	colorChan := make(chan project.Color, 1)
-
-	go func() {
-		defer close(colorChan)
-
-		select {
-		case <-ctx.Done():
-			return
-		case colorChan <- fetchProjectColor(client, projectID):
-		}
-	}()
-
-	return colorChan
-}
-
-type taskFilterResult struct {
-	tasks []types.Task
-	err   error
-}
-
-func fetchAndFilterTasksAsync(ctx context.Context, client *api.Client, projectID string, opts *listOptions) <-chan taskFilterResult {
-	resultChan := make(chan taskFilterResult, 1)
-
-	go func() {
-		defer close(resultChan)
-
-		// Fetch tasks
-		tasks, err := client.ListTasks(projectID)
-		if err != nil {
-			select {
-			case <-ctx.Done():
-				return
-			case resultChan <- taskFilterResult{err: err}:
-				return
-			}
-		}
-
-		// Apply filters
-		filteredTasks := filterTasks(tasks, opts)
-
-		select {
-		case <-ctx.Done():
-			return
-		case resultChan <- taskFilterResult{filteredTasks, nil}:
-		}
-	}()
-
-	return resultChan
 }
 
 func filterTasks(tasks []types.Task, opts *listOptions) []types.Task {
@@ -183,35 +124,11 @@ tags, and due date. Results are displayed in an interactive selector.`,
 			}
 			opts.projectID = resolvedProject.ID
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			colorChan := fetchProjectColorAsync(ctx, client, opts.projectID)
-			taskChan := fetchAndFilterTasksAsync(ctx, client, opts.projectID, opts)
-
-			// Wait for both operations to complete
-			var projectColor project.Color
-			var filteredTasks []types.Task
-
-			// Get the task results
-			taskResult := <-taskChan
-			if taskResult.err != nil {
-				cancel() // Cancel the color fetching if task fetching failed
-				return taskResult.err
+			filteredTasks, err := client.ListTasks(opts.projectID)
+			if err != nil {
+				return err
 			}
-			filteredTasks = taskResult.tasks
-
-			// Get the project color
-			select {
-			case <-ctx.Done():
-				projectColor = project.DefaultColor
-			case color, ok := <-colorChan:
-				if !ok {
-					projectColor = project.DefaultColor
-				} else {
-					projectColor = color
-				}
-			}
+			filteredTasks = filterTasks(filteredTasks, opts)
 
 			switch resolveOutput(cmd, opts.output) {
 			case types.OutputJSON:
@@ -238,11 +155,16 @@ tags, and due date. Results are displayed in an interactive selector.`,
 					utils.PrintTasksSimple(filteredTasks)
 					return nil
 				}
-				t, err := utils.FuzzySelectTask(filteredTasks, projectColor, "")
+				if len(filteredTasks) == 0 {
+					fmt.Fprintln(os.Stderr, "No tasks found")
+					return nil
+				}
+				result, err := picker.RunTaskPicker(filteredTasks, nil, "Select Task")
 				if err != nil {
 					return fmt.Errorf("failed to select task: %w", err)
 				}
-				fmt.Println(utils.GetTaskDescription(t, projectColor))
+				r := render.New()
+				fmt.Println(r.TaskDetail(result.Task, result.ProjectName))
 			}
 			return nil
 		},

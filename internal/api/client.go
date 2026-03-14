@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/go-resty/resty/v2"
@@ -338,6 +340,7 @@ func (c *Client) ListTasks(projectID string) ([]types.Task, error) {
 		return nil, fmt.Errorf("failed to list tasks: %s", apiErrorMessage(resp.String()))
 	}
 
+	sortTasksByDueDate(projectData.Tasks)
 	return projectData.Tasks, nil
 }
 
@@ -359,7 +362,58 @@ func (c *Client) GetProjectWithTasks(projectID string) (*types.ProjectData, erro
 		projectData.Project = types.InboxProject
 	}
 
+	sortTasksByDueDate(projectData.Tasks)
 	return &projectData, nil
+}
+
+// sortTasksByDueDate sorts tasks by due date ascending, with no-date tasks at the end.
+func sortTasksByDueDate(tasks []types.Task) {
+	sort.SliceStable(tasks, func(i, j int) bool {
+		di := time.Time(tasks[i].DueDate)
+		dj := time.Time(tasks[j].DueDate)
+		if di.IsZero() && dj.IsZero() {
+			return false
+		}
+		if di.IsZero() {
+			return false
+		}
+		if dj.IsZero() {
+			return true
+		}
+		return di.Before(dj)
+	})
+}
+
+// TaskFilter specifies criteria for the filter tasks endpoint.
+type TaskFilter struct {
+	ProjectIDs []string `json:"projectIds,omitempty"`
+	StartDate  string   `json:"startDate,omitempty"`
+	EndDate    string   `json:"endDate,omitempty"`
+	Priority   []int    `json:"priority,omitempty"`
+	Tag        []string `json:"tag,omitempty"`
+	Status     []int    `json:"status,omitempty"`
+}
+
+// FilterTasks retrieves tasks using the filter endpoint (single API call).
+func (c *Client) FilterTasks(filter TaskFilter) ([]types.Task, error) {
+	var tasks []types.Task
+	resp, err := c.http.R().
+		SetBody(filter).
+		SetResult(&tasks).
+		Post("/task/filter")
+
+	if err != nil {
+		return nil, errors.Wrap(err, "filtering tasks")
+	}
+	if resp.IsError() {
+		return nil, fmt.Errorf("failed to filter tasks: %s", apiErrorMessage(resp.String()))
+	}
+	if tasks == nil {
+		tasks = []types.Task{}
+	}
+
+	sortTasksByDueDate(tasks)
+	return tasks, nil
 }
 
 func (c *Client) CreateTask(task *types.Task) (*types.Task, error) {

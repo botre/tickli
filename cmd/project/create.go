@@ -5,10 +5,13 @@ import (
 	"fmt"
 
 	"github.com/botre/tickli/internal/api"
+	"github.com/botre/tickli/internal/config"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/forms"
+	"github.com/botre/tickli/internal/tui/render"
+	"github.com/botre/tickli/internal/tui/theme"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
-	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -48,29 +51,32 @@ supports both direct parameter input and interactive mode.`,
 				if !prompt.IsInteractive() {
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
-				opts.name = prompt.String("Project name", opts.name)
-				if opts.name == "" {
-					return fmt.Errorf("project name is required")
+				t := theme.Default()
+				kindStr := string(opts.kind)
+				if kindStr == "" {
+					kindStr = "TASK"
 				}
-
-				colors := []string{"#3694FE (Default)", "#EC6665 (Red)", "#F2B04A (Orange)", "#FFD866 (Yellow)", "#5CD0A7 (Green)", "#9BECEC (Cyan)", "#4AA6EF (Blue)", "#CF66F6 (Purple)", "#EC70A5 (Pink)"}
-				colorHexes := []string{"#3694FE", "#EC6665", "#F2B04A", "#FFD866", "#5CD0A7", "#9BECEC", "#4AA6EF", "#CF66F6", "#EC70A5"}
-				idx, err := prompt.Select("Color:", colors)
-				if err == nil {
-					_ = opts.color.Set(colorHexes[idx])
+				defaultColor := opts.color.String()
+				if defaultColor == "" {
+					if cfg, err := config.Load(); err == nil && cfg.DefaultProjectColor != "" {
+						defaultColor = cfg.DefaultProjectColor
+					}
 				}
-
-				viewModes := []string{"list", "kanban", "timeline"}
-				idx, err = prompt.Select("View mode:", viewModes)
-				if err == nil {
-					_ = opts.viewMode.Set(viewModes[idx])
+				result, err := forms.RunProjectCreateForm(t, forms.ProjectFormResult{
+					Name:     opts.name,
+					Color:    defaultColor,
+					ViewMode: string(opts.viewMode),
+					Kind:     kindStr,
+				})
+				if err != nil {
+					return fmt.Errorf("form cancelled: %w", err)
 				}
-
-				kinds := []string{"TASK", "NOTE"}
-				idx, err = prompt.Select("Kind:", kinds)
-				if err == nil {
-					_ = opts.kind.Set(kinds[idx])
+				opts.name = result.Name
+				if result.Color != "" {
+					_ = opts.color.Set(result.Color)
 				}
+				_ = opts.viewMode.Set(result.ViewMode)
+				_ = opts.kind.Set(result.Kind)
 			}
 
 			p := &types.Project{
@@ -95,8 +101,9 @@ supports both direct parameter input and interactive mode.`,
 			case types.OutputQuiet:
 				fmt.Println(p.ID)
 			default:
-				fmt.Println(utils.GetProjectDescription(*p))
-				fmt.Println(p.ID)
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Created project %s", p.ID)))
+				fmt.Println(r.ProjectDetail(*p))
 			}
 			return nil
 		},

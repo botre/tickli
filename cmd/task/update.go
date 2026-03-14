@@ -9,8 +9,10 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/forms"
+	"github.com/botre/tickli/internal/tui/render"
+	"github.com/botre/tickli/internal/tui/theme"
 	"github.com/botre/tickli/internal/types"
-	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/types/task"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
@@ -78,27 +80,42 @@ Changes only the properties you specify - others remain unchanged.`,
 				if !prompt.IsInteractive() {
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
-				newTitle := prompt.String("Title", t.Title)
-				if newTitle != t.Title {
-					t.Title = newTitle
+				// Collect tags from all projects concurrently
+				var knownTags []string
+				allProjects, listErr := client.ListProjects()
+				if listErr == nil {
+					projectIDs := make([]string, len(allProjects))
+					for i, p := range allProjects {
+						projectIDs[i] = p.ID
+					}
+					knownTags = forms.CollectAllTags(projectIDs, func(pid string) ([]types.Task, error) {
+						return client.ListTasks(pid)
+					})
 				}
-				newContent := prompt.String("Content", t.Content)
-				if newContent != t.Content {
-					t.Content = newContent
+				th := theme.Default()
+				result, formErr := forms.RunTaskUpdateForm(th, forms.TaskFormResult{
+					Title:    t.Title,
+					Content:  t.Content,
+					Priority: t.Priority,
+					Tags:     strings.Join(t.Tags, ", "),
+				}, knownTags)
+				if formErr != nil {
+					return fmt.Errorf("form cancelled: %w", formErr)
 				}
-
-				priorities := []string{"none", "low", "medium", "high"}
-				idx, selectErr := prompt.Select("Priority:", priorities)
-				if selectErr == nil {
-					var p task.Priority
-					_ = p.Set(priorities[idx])
-					t.Priority = p
+				t.Title = result.Title
+				t.Content = result.Content
+				t.Priority = result.Priority
+				if result.Date != "" {
+					r, parseErr := utils.ParseTimeExpression(result.Date)
+					if parseErr == nil {
+						t.StartDate = types.TickTickTime(r.Start())
+						t.DueDate = types.TickTickTime(r.End())
+						t.IsAllDay = r.IsAllDay()
+					}
 				}
-
-				tagsInput := prompt.String("Tags (comma-separated)", strings.Join(t.Tags, ", "))
-				if tagsInput != "" {
+				if result.Tags != "" {
 					var tags []string
-					for _, tag := range strings.Split(tagsInput, ",") {
+					for _, tag := range strings.Split(result.Tags, ",") {
 						tag = strings.TrimSpace(tag)
 						if tag != "" {
 							tags = append(tags, tag)
@@ -107,16 +124,6 @@ Changes only the properties you specify - others remain unchanged.`,
 					t.Tags = tags
 				} else {
 					t.Tags = nil
-				}
-
-				dateInput := prompt.String("Date (e.g. 'tomorrow 2pm')", "")
-				if dateInput != "" {
-					r, parseErr := utils.ParseTimeExpression(dateInput)
-					if parseErr == nil {
-						t.StartDate = types.TickTickTime(r.Start())
-						t.DueDate = types.TickTickTime(r.End())
-						t.IsAllDay = r.IsAllDay()
-					}
 				}
 			}
 
@@ -199,8 +206,9 @@ Changes only the properties you specify - others remain unchanged.`,
 			case types.OutputQuiet:
 				fmt.Println(t.ID)
 			default:
-				fmt.Printf("Task %s updated successfully\n", t.ID)
-				fmt.Println(utils.GetTaskDescription(*t, project.DefaultColor))
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Task %s updated", t.ID)))
+				fmt.Println(r.TaskDetail(*t, ""))
 			}
 			return nil
 		},

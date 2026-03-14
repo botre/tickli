@@ -7,6 +7,8 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/forms"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -44,10 +46,11 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 			}
 
 			if !opts.force && prompt.IsInteractive() {
-				var confirm string
-				fmt.Printf("Are you sure you want to delete the project %s? (y/N): ", resolvedProject.Name)
-				fmt.Scanln(&confirm)
-				if confirm != "y" && confirm != "Y" {
+				confirmed, err := forms.RunConfirm(
+					fmt.Sprintf("Delete \"%s\"?", resolvedProject.Name),
+					"All tasks in this project will be lost. This cannot be undone.",
+				)
+				if err != nil || !confirmed {
 					fmt.Println("Deletion aborted")
 					return nil
 				}
@@ -65,7 +68,8 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 			case types.OutputQuiet:
 				fmt.Println(opts.projectID)
 			default:
-				fmt.Printf("Project %s deleted\n", opts.projectID)
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Project %s deleted", opts.projectID)))
 			}
 
 			return nil

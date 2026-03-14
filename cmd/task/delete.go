@@ -7,6 +7,8 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/forms"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
@@ -41,23 +43,25 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 			opts.taskID = args[0]
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Fetch task so we can show its title in confirmation and JSON output
+			t, getErr := client.GetTask(opts.taskID)
+			if getErr != nil {
+				return errors.Wrap(getErr, fmt.Sprintf("failed to get task %q", opts.taskID))
+			}
+
 			if !opts.force && prompt.IsInteractive() {
-				var confirm string
-				fmt.Printf("Are you sure you want to delete the task %s? (y/N): ", opts.taskID)
-				fmt.Scanln(&confirm)
-				if confirm != "y" && confirm != "Y" {
+				confirmed, err := forms.RunConfirm(
+					fmt.Sprintf("Delete \"%s\"?", t.Title),
+					"This cannot be undone.",
+				)
+				if err != nil || !confirmed {
 					fmt.Println("Deletion aborted")
 					return nil
 				}
 			}
 
-			// Fetch task before deletion so JSON output can return the full object
 			var taskSnapshot *types.Task
 			if resolveOutput(cmd, opts.output) == types.OutputJSON {
-				t, getErr := client.GetTask(opts.taskID)
-				if getErr != nil {
-					return errors.Wrap(getErr, fmt.Sprintf("failed to get task %q", opts.taskID))
-				}
 				taskSnapshot = t
 			}
 
@@ -74,7 +78,8 @@ the deletion unless the --force flag is used or stdin is not a terminal.`,
 			case types.OutputQuiet:
 				fmt.Println(opts.taskID)
 			default:
-				fmt.Printf("Task %s deleted\n", opts.taskID)
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Task %s deleted", opts.taskID)))
 			}
 
 			return nil

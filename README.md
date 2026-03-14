@@ -1,32 +1,12 @@
 # Tickli
 
-A command line interface for TickTick task management.
-
-## Features
-
-- Smart views: today, tomorrow, next 7 days, inbox, and all tasks across all projects
-- Create, update, move, complete, uncomplete, and delete tasks
-- Create, update, show, and delete projects; set active project with `project use`
-- Natural language date parsing (e.g. "tomorrow at 2pm", "next Friday")
-- Set dates, priorities, tags, and content on tasks
-- All-day task support with automatic time stripping
-- Filter tasks by priority, tags, and due date window
-- Interactive fuzzy-search selection for tasks and projects (auto-disabled when piped)
-- Three-tier output: human-readable, JSON, and quiet (IDs only) for scripting
-- Global `--json` and `--quiet` flags override per-command `-o` for wrapper scripts
-- Single-task commands auto-search all projects, so no `--project` flag is needed
-- Semantic exit codes (0–4) for reliable programmatic error handling
-- Shell completions for Bash, Zsh, and Fish (commands, flags, project/task IDs)
-- Respects `NO_COLOR` environment variable and `--no-color` flag
-- Secure OAuth authentication with XDG-compliant config/token storage
+A beautiful command line interface for TickTick task management, built with [Charm](https://charm.sh).
 
 ## Installation
 
 ```bash
 go install github.com/botre/tickli@latest
 ```
-
-This installs the latest tagged version. If no tags exist, it falls back to the tip of the default branch.
 
 ## Quick Start
 
@@ -46,29 +26,20 @@ tickli init
 # List available projects
 tickli project list
 
-# Switch to a project (interactive selector)
+# Switch to a project
 tickli project use
 
-# Switch to a project by ID
-tickli project use abc123def456
-
 # Create a task
-tickli task create --title "Finish documentation"
+tickli task create -t "Finish documentation"
 
-# Create a high priority task with a due date
-tickli task create --title "Important meeting" --priority high --date "tomorrow at 2pm"
+# Create a task interactively
+tickli task create -i
 
-# List your tasks
-tickli task list
-
-# See what's due today (across all projects)
+# See what's due today
 tickli today
 
 # Complete a task
 tickli task complete <task-id>
-
-# Uncomplete a task
-tickli task uncomplete <task-id>
 ```
 
 ## Commands
@@ -78,7 +49,7 @@ tickli task uncomplete <task-id>
 | Command           | Description                              |
 | ----------------- | ---------------------------------------- |
 | `tickli init`     | Initialize tickli                        |
-| `tickli reset`    | Reset authentication (`--force`/`-f` to skip confirmation) |
+| `tickli reset`    | Reset authentication                     |
 | `tickli version`  | Show the version                         |
 
 ### Smart Views
@@ -90,8 +61,6 @@ tickli task uncomplete <task-id>
 | `tickli week`        | Show tasks for the next 7 days across all projects       |
 | `tickli inbox`       | Show tasks in the inbox                                  |
 | `tickli all`         | Show all incomplete tasks across all projects             |
-
-Smart view flags:
 
 | Flag              | Short | Description                                        |
 | ----------------- | ----- | -------------------------------------------------- |
@@ -112,9 +81,7 @@ Smart view flags:
 | `tickli task move`         |                     | Move a task to a different project  |
 | `tickli task delete`       | `rm`, `remove`      | Delete a task                       |
 
-Single-task commands (show, update, delete, complete, uncomplete, move) only need a task ID; they search all projects automatically. The `--project`/`-P` flag is only needed for `list` and `create`.
-
-#### Task Flags
+Single-task commands (show, update, delete, complete, uncomplete, move) only need a task ID — they search all projects automatically. The `--project`/`-P` flag is only needed for `list` and `create`.
 
 | Flag              | Short | Commands         | Description                                        |
 | ----------------- | ----- | ---------------- | -------------------------------------------------- |
@@ -129,9 +96,7 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | `--all-day`       |       | create, update   | Set as all-day task (strips time; `=false` to unset)|
 | `--due-within`    |       | list             | Filter: `today`, `tomorrow`, `this-week`, `overdue`|
 | `--all`           | `-a`  | list             | Include completed tasks                            |
-| `--verbose`       | `-v`  | list             | Show more details                                  |
-| `--to`            |       | move, update     | Target project ID for move (required on move)      |
-| `--move-to`       |       | update           | Alias for `--to`                                   |
+| `--to`            |       | move, update     | Target project for move (required on move)         |
 | `--force`         | `-f`  | delete           | Skip confirmation prompt                           |
 | `--interactive`   | `-i`  | create, update   | Use interactive prompts                            |
 
@@ -146,8 +111,6 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | `tickli project update`  |               | Update a project                |
 | `tickli project delete`  |               | Delete a project                |
 
-#### Project Flags
-
 | Flag              | Short | Commands         | Description                                        |
 | ----------------- | ----- | ---------------- | -------------------------------------------------- |
 | `--name`          | `-n`  | create, update   | Project name                                       |
@@ -156,7 +119,6 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | `--kind`          |       | create, update   | Project type: `TASK` or `NOTE`                     |
 | `--force`         | `-f`  | delete           | Skip confirmation prompt                           |
 | `--interactive`   | `-i`  | create, update   | Use interactive prompts                            |
-| `--with-tasks`    |       | show             | Include all tasks                                  |
 | `--filter`        |       | list             | Filter projects by name                            |
 
 ### Global Flags
@@ -165,15 +127,29 @@ Single-task commands (show, update, delete, complete, uncomplete, move) only nee
 | ----------------- | ----- | -------------------------------------- |
 | `--json`          |       | Output in JSON format (overrides `-o`) |
 | `--quiet`         | `-q`  | Only print IDs (overrides `-o`)        |
-| `--output`        | `-o`  | Output format: `simple` or `json`        |
+| `--output`        | `-o`  | Output format: `simple` or `json`      |
 | `--no-color`      |       | Disable color output (also respects `NO_COLOR` env) |
-| `--project`       | `-P`  | Project context for task list and create (ID)      |
+| `--project`       | `-P`  | Project context for task list and create |
+
+## Interactive Mode
+
+List commands (`today`, `task list`, `project list`, `project use`) open a table picker when running in a terminal. Typing filters results immediately (fzf-style), `↑↓` to navigate, `Enter` to select, `Esc` to clear filter or cancel. The task picker includes a preview pane that shows details of the selected task.
+
+Commands that support `--interactive` (`-i`) use multi-step form wizards:
+
+```bash
+tickli task create -i      # project → title → content → priority → date → tags
+tickli task update <id> -i
+tickli project create -i   # name → color → view mode → type
+```
+
+The task creation wizard includes a project selector with type-to-filter and inline "+ Create new project", a tag multi-select from existing tags across all projects, and an inline input for new tags.
+
+Destructive operations (delete, reset) use styled confirmation prompts.
 
 ## Scripting
 
-Tickli is designed to work well in scripts and with other tools.
-
-When piped or redirected, list commands output tab-separated columns:
+When piped or redirected, list commands automatically output tab-separated columns instead of opening a picker:
 
 | Command         | Columns                                       |
 | --------------- | --------------------------------------------- |
@@ -183,78 +159,42 @@ When piped or redirected, list commands output tab-separated columns:
 
 ```bash
 # Create a task and capture its ID
-TASK_ID=$(tickli task create --title "Review PR" --quiet)
+TASK_ID=$(tickli task create -t "Review PR" -q)
 
 # Complete it
 tickli task complete "$TASK_ID"
-
-# List task IDs for a project
-tickli task list --quiet
-
-# Get task details as JSON
-tickli task show <task-id> --json
-
-# Delete a task in one line
-tickli task delete $(tickli task create --title "temp" --quiet) --force
 
 # Get today's tasks as JSON
 tickli today --json
 
 # Count overdue high priority tasks
-tickli today -p high --quiet | wc -l
+tickli today -p high -q | wc -l
 
-# Create an all-day task (no specific time)
-tickli task create -t "Team offsite" --all-day --due "2025-03-20"
+# Extract just titles
+tickli today | cut -f3
 
-# Remove all-day status
-tickli task update <task-id> --all-day=false
-
-# Date formats accept timezone offsets with or without colon
-tickli task create -t "Call" --start "2025-03-14T10:00:00+02:00" --due "2025-03-14T11:00:00+0200"
-
-# Non-interactive fallback: piped/redirected output auto-detects non-TTY
-tickli today | cat              # prints tab-separated rows instead of fuzzy selector
-tickli today | cut -f3          # extract just the title column
-
-# Duration field in JSON: computed from start/due when both are set
+# Duration field in JSON
 tickli task show <task-id> --json | jq .duration
-tickli today --json | jq '.[] | select(.duration)'
 ```
-
-## Exit Codes
-
-| Code | Meaning         |
-| ---- | --------------- |
-| 0    | Success         |
-| 1    | General error   |
-| 2    | Usage error     |
-| 3    | Not found       |
-| 4    | Auth error      |
 
 ## Configuration
 
-Tickli stores its configuration at `~/.config/tickli/config.yaml` (following the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/)).
+Configuration is stored at `~/.config/tickli/config.yaml` ([XDG](https://specifications.freedesktop.org/basedir-spec/latest/)).
 
 | Key                     | Type   | Default     | Description                                      |
 | ----------------------- | ------ | ----------- | ------------------------------------------------ |
-| `default_project`       | string | `"inbox"`   | Default project used when no project is specified  |
-| `default_project_color` | string | `""`        | Default color for newly created projects         |
+| `default_project`       | string | `"inbox"`   | Default project when none specified               |
+| `default_project_color` | string | `""`        | Default color for new projects                   |
 
-You can set the default project with `tickli project use`.
-
-### Files
+Set the default project with `tickli project use`.
 
 | Path | Description |
 | ---- | ----------- |
-| `~/.config/tickli/config.yaml` | Configuration (default project, colors) |
-| `~/.config/tickli/credentials` | TickTick Client ID and Client Secret |
+| `~/.config/tickli/config.yaml` | Configuration |
+| `~/.config/tickli/credentials` | Client ID and Secret |
 | `~/.local/share/tickli/token` | OAuth access token |
 
-To log out, run `tickli reset`. This removes the access token and re-runs authentication.
-
 ## Shell Completions
-
-Enable tab completions for commands, flags, project IDs, and task IDs:
 
 ```bash
 # Bash
@@ -267,31 +207,34 @@ tickli completion zsh > "${fpath[1]}/_tickli"
 tickli completion fish > ~/.config/fish/completions/tickli.fish
 ```
 
-Restart your shell after installing.
+## Exit Codes
+
+| Code | Meaning         |
+| ---- | --------------- |
+| 0    | Success         |
+| 1    | General error   |
+| 2    | Usage error     |
+| 3    | Not found       |
+| 4    | Auth error      |
 
 ## Design Philosophy
 
-Tickli is built to serve two audiences equally: humans at a terminal and AI agents (or scripts) driving it programmatically.
+Tickli serves two audiences equally: humans at a terminal and scripts/agents driving it programmatically.
 
-**Graceful degradation, not separate modes.** When stdin is a TTY, commands present an interactive fuzzy selector. When piped or redirected, they automatically fall back to machine-friendly tab-separated output. No extra flag is needed -the right behavior is inferred from context.
+**Graceful degradation.** TTY gets interactive pickers; piped output gets tab-separated columns. No flag needed — inferred from context.
 
-**Consistent, predictable JSON.** Every mutating command (`create`, `update`, `complete`, `uncomplete`, `move`, `delete`) returns the full task object in `--json` mode, not a minimal acknowledgement. Scripts can always parse the same shape. Computed fields like `duration` are included so callers don't need to recompute.
+**Consistent JSON.** Every mutating command returns the full object in `--json` mode. Computed fields like `duration` are included.
 
-**Flags should be unsurprising.** Each flag name has one meaning across the entire CLI. Where the same concept appears in multiple commands, the flag name and semantics match (e.g. `--to` works on both `move` and `update`). Short flags (`-a`, `-p`, `-t`) are never overloaded within the same command.
+**Unsurprising flags.** Each flag name has one meaning across the entire CLI. Short flags are never overloaded within a command.
 
-**Flexible input, strict output.** Date parsing accepts plain dates (`2025-03-20`), full ISO 8601 timestamps, and both `+02:00` and `+0200` timezone offsets because producers vary. The `--date` flag also accepts natural language (`tomorrow`, `next week`). Output always uses a single canonical format. `--all-day` automatically strips time components rather than requiring the caller to zero them manually.
+**Flexible input, strict output.** Dates accept plain dates, ISO 8601, natural language. Output uses a single canonical format.
 
-**Don't hide the escape hatch.** Boolean flags like `--all-day` support explicit `=false` so that both setting and unsetting are scriptable without needing a separate `--no-all-day` flag.
+**Minimal context.** Single-entity commands only need an ID. `--project` is only required where scope is ambiguous (`list`, `create`). Smart views need no arguments.
 
-**Minimal context required.** Single-entity commands — whether for tasks (`show`, `update`, `delete`, `complete`, `uncomplete`, `move`) or projects (`show`, `update`, `delete`) — only need an ID. Task commands search all projects automatically. The `--project` flag is only required for `task list` and `task create`, where a scope is genuinely ambiguous. Smart views (`today`, `tomorrow`, `week`, `inbox`, `all`) require no arguments at all.
+**Three-tier output.** `simple` (human), `json` (machine), `quiet` (IDs). `--json` and `--quiet` override per-command `-o`.
 
-**Three-tier output with override hierarchy.** Output comes in three formats: `simple` (human-readable), `json` (machine-readable), and `quiet` (IDs only, for piping). The persistent `--json` and `--quiet` flags override the per-command `-o` flag, so a wrapper script can force JSON globally without modifying individual commands.
+**Stdout is data, stderr is diagnostics.** Piped data stays clean.
 
-**Stdout is data, stderr is diagnostics.** Structured output (JSON, plain) goes to stdout. Progress messages, warnings, and errors go to stderr. This keeps piped data clean and lets agents parse stdout without filtering noise.
+**Non-blocking.** Without a TTY, commands never block for input. Every promptable value has a flag.
 
-**Non-blocking by default.** When stdin is not a TTY, commands never block waiting for interactive input. Every value that can be prompted for is also settable via a flag.
-
-**`--help` is the spec.** Every command and flag carries a short, precise description. Usage examples are included for non-obvious patterns. Agents discover capabilities through `--help`, so it must be complete and parseable.
-
-**Semantic exit codes.** Exit codes distinguish between success (0), general errors (1), usage errors (2), not-found (3), and auth failures (4). Scripts can branch on the exit code without parsing stderr.
-
+**One theme, everywhere.** A single `Theme` struct styles everything — pickers, forms, detail views, status messages.

@@ -6,8 +6,8 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	cliErrors "github.com/botre/tickli/internal/errors"
+	"github.com/botre/tickli/internal/tui/render"
 	"github.com/botre/tickli/internal/types"
-	"github.com/botre/tickli/internal/types/project"
 	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -61,8 +61,12 @@ Displays title, content, dates, priority, tags, and other properties.`,
 			case types.OutputQuiet:
 				fmt.Println(task.ID)
 			default:
-				fmt.Println(utils.GetTaskDescription(*task, project.DefaultColor))
-				fmt.Println(task.ID)
+				projectName := ""
+				if p, err := client.GetProject(task.ProjectID); err == nil {
+					projectName = p.Name
+				}
+				r := render.New()
+				fmt.Println(r.TaskDetail(*task, projectName))
 			}
 			return nil
 		},

@@ -7,9 +7,11 @@ import (
 	"github.com/botre/tickli/internal/api"
 	"github.com/botre/tickli/internal/completion"
 	"github.com/botre/tickli/internal/prompt"
+	"github.com/botre/tickli/internal/tui/forms"
+	"github.com/botre/tickli/internal/tui/render"
+	"github.com/botre/tickli/internal/tui/theme"
 	"github.com/botre/tickli/internal/types"
 	"github.com/botre/tickli/internal/types/project"
-	"github.com/botre/tickli/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -56,29 +58,26 @@ Changes only the properties you specify - others remain unchanged.`,
 				if !prompt.IsInteractive() {
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
-				newName := prompt.String("Name", p.Name)
-				if newName != "" {
-					p.Name = newName
+				th := theme.Default()
+				kindStr := string(p.Kind)
+				if kindStr == "" {
+					kindStr = "TASK"
 				}
-
-				colors := []string{"#3694FE (Default)", "#EC6665 (Red)", "#F2B04A (Orange)", "#FFD866 (Yellow)", "#5CD0A7 (Green)", "#9BECEC (Cyan)", "#4AA6EF (Blue)", "#CF66F6 (Purple)", "#EC70A5 (Pink)"}
-				colorHexes := []string{"#3694FE", "#EC6665", "#F2B04A", "#FFD866", "#5CD0A7", "#9BECEC", "#4AA6EF", "#CF66F6", "#EC70A5"}
-				idx, selectErr := prompt.Select("Color:", colors)
-				if selectErr == nil {
-					_ = p.Color.Set(colorHexes[idx])
+				result, formErr := forms.RunProjectCreateForm(th, forms.ProjectFormResult{
+					Name:     p.Name,
+					Color:    p.Color.String(),
+					ViewMode: string(p.ViewMode),
+					Kind:     kindStr,
+				})
+				if formErr != nil {
+					return fmt.Errorf("form cancelled: %w", formErr)
 				}
-
-				viewModes := []string{"list", "kanban", "timeline"}
-				idx, selectErr = prompt.Select("View mode:", viewModes)
-				if selectErr == nil {
-					_ = p.ViewMode.Set(viewModes[idx])
+				p.Name = result.Name
+				if result.Color != "" {
+					_ = p.Color.Set(result.Color)
 				}
-
-				kinds := []string{"TASK", "NOTE"}
-				idx, selectErr = prompt.Select("Kind:", kinds)
-				if selectErr == nil {
-					_ = p.Kind.Set(kinds[idx])
-				}
+				_ = p.ViewMode.Set(result.ViewMode)
+				_ = p.Kind.Set(result.Kind)
 			}
 
 			if cmd.Flags().Changed("name") {
@@ -107,8 +106,9 @@ Changes only the properties you specify - others remain unchanged.`,
 			case types.OutputQuiet:
 				fmt.Println(p.ID)
 			default:
-				fmt.Printf("Project %s updated successfully\n", p.ID)
-				fmt.Println(utils.GetProjectDescription(p))
+				r := render.New()
+				fmt.Println(r.SuccessMessage(fmt.Sprintf("Project %s updated", p.ID)))
+				fmt.Println(r.ProjectDetail(p))
 			}
 			return nil
 		},
