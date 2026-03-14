@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/huh"
 
@@ -12,14 +13,17 @@ import (
 	"github.com/botre/tickli/internal/types/task"
 )
 
+const newProjectSentinel = "__new_project__"
+
 // TaskFormResult holds the values collected from the task creation form.
 type TaskFormResult struct {
-	Title    string
-	Content  string
-	Priority task.Priority
-	Date     string
-	Tags     string
-	Project  string // selected project ID
+	Title          string
+	Content        string
+	Priority       task.Priority
+	Date           string
+	Tags           string
+	Project        string // selected project ID
+	NewProjectName string // set when user chose to create a new project
 }
 
 // RunTaskCreateForm displays an interactive task creation form using Huh.
@@ -58,15 +62,14 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 		}
 	}
 
-	var extraTags string
+	var newTags string
 	var groups []*huh.Group
 
-	// Step 1: Project selection (if applicable)
+	// Project selection (with inline "create new" option)
 	if len(projects) > 0 {
 		sorted := make([]types.Project, len(projects))
 		copy(sorted, projects)
 		sort.Slice(sorted, func(i, j int) bool {
-			// Pin the current/default project to the top
 			if sorted[i].ID == result.Project {
 				return true
 			}
@@ -75,21 +78,43 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 			}
 			return strings.ToLower(sorted[i].Name) < strings.ToLower(sorted[j].Name)
 		})
-		opts := make([]huh.Option[string], len(sorted))
-		for i, p := range sorted {
-			opts[i] = huh.NewOption(p.Name, p.ID)
+		opts := []huh.Option[string]{
+			huh.NewOption("+ Create new project", newProjectSentinel),
+		}
+		for _, p := range sorted {
+			opts = append(opts, huh.NewOption(p.Name, p.ID))
+		}
+		// Pre-select default project if set, otherwise first real project
+		if result.Project == "" && len(sorted) > 0 {
+			result.Project = sorted[0].ID
 		}
 		groups = append(groups, huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Project").
-				Description("Which project does this belong to? (type to filter)").
+				Description("Type to filter").
 				Options(opts...).
 				Filtering(true).
 				Value(&result.Project),
 		))
+
+		// Conditional: new project name input
+		groups = append(groups, huh.NewGroup(
+			huh.NewInput().
+				Title("New Project Name").
+				Placeholder("Enter project name…").
+				Value(&result.NewProjectName).
+				Validate(func(s string) error {
+					if s == "" {
+						return fmt.Errorf("name is required")
+					}
+					return nil
+				}),
+		).WithHideFunc(func() bool {
+			return result.Project != newProjectSentinel
+		}))
 	}
 
-	// Step 2: Title and content
+	// Title
 	groups = append(groups, huh.NewGroup(
 		huh.NewInput().
 			Title("Title").
@@ -102,7 +127,10 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 				}
 				return nil
 			}),
+	))
 
+	// Content
+	groups = append(groups, huh.NewGroup(
 		huh.NewText().
 			Title("Content").
 			Description("Additional details (optional)").
@@ -111,11 +139,10 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 			Lines(3),
 	))
 
-	// Step 3: Priority and due date
+	// Priority
 	groups = append(groups, huh.NewGroup(
 		huh.NewSelect[string]().
 			Title("Priority").
-			Description("How important is this?").
 			Options(
 				huh.NewOption("None", "none"),
 				huh.NewOption("🔵 Low", "low"),
@@ -123,7 +150,10 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 				huh.NewOption("🔴 High", "high"),
 			).
 			Value(&priorityStr),
+	))
 
+	// Due date
+	groups = append(groups, huh.NewGroup(
 		huh.NewInput().
 			Title("Due Date").
 			Description("e.g. 'tomorrow at 2pm', 'next Friday', '2025-03-20'").
@@ -131,7 +161,7 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 			Value(&result.Date),
 	))
 
-	// Step 4: Tags
+	// Tags (multi-select + inline new tag input)
 	if len(knownTags) > 0 {
 		tagOpts := make([]huh.Option[string], len(knownTags))
 		for i, tag := range knownTags {
@@ -140,15 +170,14 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 		groups = append(groups, huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title("Tags").
-				Description("Select existing tags (type to filter)").
+				Description("Type to filter, enter to toggle").
 				Options(tagOpts...).
 				Filterable(true).
 				Value(&selectedTags),
 			huh.NewInput().
-				Title("New Tags").
-				Description("Add new tags (comma-separated)").
-				Placeholder("new-tag, another-tag…").
-				Value(&extraTags),
+				Title("Add New Tags").
+				Placeholder("new-tag, another…").
+				Value(&newTags),
 		))
 	} else {
 		groups = append(groups, huh.NewGroup(
@@ -179,11 +208,11 @@ func RunTaskCreateForm(t theme.Theme, defaults TaskFormResult, projects []types.
 		result.Priority = task.PriorityNone
 	}
 
-	// Merge selected + extra tags
+	// Merge selected + new tags
 	if len(knownTags) > 0 {
 		allTags := append([]string{}, selectedTags...)
-		if extraTags != "" {
-			for _, tag := range strings.Split(extraTags, ",") {
+		if newTags != "" {
+			for _, tag := range strings.Split(newTags, ",") {
 				tag = strings.TrimSpace(tag)
 				if tag != "" && !contains(allTags, tag) {
 					allTags = append(allTags, tag)
@@ -201,14 +230,36 @@ func RunTaskUpdateForm(t theme.Theme, defaults TaskFormResult, knownTags []strin
 	return RunTaskCreateForm(t, defaults, nil, knownTags)
 }
 
-// CollectTags extracts unique sorted tags from a list of tasks.
-func CollectTags(tasks []types.Task) []string {
+// CollectAllTags fetches tags from all projects concurrently with a concurrency limit.
+// listTasks is a function that fetches tasks for a project ID.
+func CollectAllTags(projectIDs []string, listTasks func(projectID string) ([]types.Task, error)) []string {
+	const maxConcurrent = 5
+	sem := make(chan struct{}, maxConcurrent)
+	var mu sync.Mutex
 	seen := make(map[string]bool)
-	for _, t := range tasks {
-		for _, tag := range t.Tags {
-			seen[tag] = true
-		}
+
+	var wg sync.WaitGroup
+	for _, pid := range projectIDs {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(id string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			tasks, err := listTasks(id)
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			for _, t := range tasks {
+				for _, tag := range t.Tags {
+					seen[tag] = true
+				}
+			}
+			mu.Unlock()
+		}(pid)
 	}
+	wg.Wait()
+
 	tags := make([]string, 0, len(seen))
 	for tag := range seen {
 		tags = append(tags, tag)

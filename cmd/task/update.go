@@ -80,13 +80,17 @@ Changes only the properties you specify - others remain unchanged.`,
 				if !prompt.IsInteractive() {
 					return fmt.Errorf("--interactive requires a terminal (stdin is not a TTY)")
 				}
-				// Collect tags from the task's project only (avoids rate limits)
+				// Collect tags from all projects concurrently
 				var knownTags []string
-				if t.ProjectID != "" {
-					tasks, taskErr := client.ListTasks(t.ProjectID)
-					if taskErr == nil {
-						knownTags = forms.CollectTags(tasks)
+				allProjects, listErr := client.ListProjects()
+				if listErr == nil {
+					projectIDs := make([]string, len(allProjects))
+					for i, p := range allProjects {
+						projectIDs[i] = p.ID
 					}
+					knownTags = forms.CollectAllTags(projectIDs, func(pid string) ([]types.Task, error) {
+						return client.ListTasks(pid)
+					})
 				}
 				th := theme.Default()
 				result, formErr := forms.RunTaskUpdateForm(th, forms.TaskFormResult{

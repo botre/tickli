@@ -82,14 +82,14 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 					return fmt.Errorf("failed to fetch projects: %w", listErr)
 				}
 
-				// Collect tags from the current project only (avoids rate limits)
-				var knownTags []string
-				if opts.projectID != "" {
-					tasks, taskErr := client.ListTasks(opts.projectID)
-					if taskErr == nil {
-						knownTags = forms.CollectTags(tasks)
-					}
+				// Collect tags from all projects concurrently
+				projectIDs := make([]string, len(allProjects))
+				for i, p := range allProjects {
+					projectIDs[i] = p.ID
 				}
+				knownTags := forms.CollectAllTags(projectIDs, func(pid string) ([]types.Task, error) {
+					return client.ListTasks(pid)
+				})
 
 				t := theme.Default()
 				result, err := forms.RunTaskCreateForm(t, forms.TaskFormResult{
@@ -102,12 +102,21 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 				if err != nil {
 					return fmt.Errorf("form cancelled: %w", err)
 				}
+
+				// Handle inline project creation
+				if result.NewProjectName != "" {
+					newProj, createErr := client.CreateProject(&types.Project{Name: result.NewProjectName})
+					if createErr != nil {
+						return fmt.Errorf("failed to create project: %w", createErr)
+					}
+					opts.projectID = newProj.ID
+				} else if result.Project != "" {
+					opts.projectID = result.Project
+				}
+
 				opts.title = result.Title
 				opts.content = result.Content
 				opts.priority = result.Priority
-				if result.Project != "" {
-					opts.projectID = result.Project
-				}
 				if result.Date != "" {
 					opts.date = result.Date
 				}
@@ -226,14 +235,3 @@ and tags. At minimum, a title is required unless using interactive mode.`,
 	return cmd
 }
 
-func dedupStrings(s []string) []string {
-	seen := make(map[string]bool)
-	var out []string
-	for _, v := range s {
-		if !seen[v] {
-			seen[v] = true
-			out = append(out, v)
-		}
-	}
-	return out
-}
