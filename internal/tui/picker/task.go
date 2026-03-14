@@ -1,11 +1,13 @@
-// Package picker provides Bubble Tea list pickers that replace go-fuzzyfinder.
+// Package picker provides Bubble Tea pickers for interactive selection.
 package picker
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -13,6 +15,7 @@ import (
 	"github.com/botre/tickli/internal/tui/components"
 	"github.com/botre/tickli/internal/tui/theme"
 	"github.com/botre/tickli/internal/types"
+	"github.com/botre/tickli/internal/types/task"
 )
 
 // TaskPickerResult holds the result of a task picker session.
@@ -22,55 +25,94 @@ type TaskPickerResult struct {
 	Cancelled   bool
 }
 
-// TaskItem wraps a task for the picker list.
-type taskPickerItem struct {
-	task        types.Task
-	projectName string
-}
-
-func (t taskPickerItem) Title() string       { return t.task.Title }
-func (t taskPickerItem) Description() string { return t.projectName }
-func (t taskPickerItem) FilterValue() string { return t.task.Title + " " + t.projectName }
-
 // taskPickerModel is the Bubble Tea model for the task picker.
 type taskPickerModel struct {
-	theme      theme.Theme
-	list       list.Model
-	detail     viewport.Model
-	help       components.HelpBar
-	result     TaskPickerResult
-	showDetail bool
-	width      int
-	height     int
-	title      string
+	theme        theme.Theme
+	table        table.Model
+	detail       viewport.Model
+	help         components.HelpBar
+	tasks        []types.Task
+	projectNames []string
+	result       TaskPickerResult
+	showDetail   bool
+	width        int
+	height       int
+	title        string
 }
 
-func newTaskPickerModel(t theme.Theme, tasks []taskPickerItem, title string) taskPickerModel {
-	delegate := components.NewTaskDelegate(t, true)
-	items := make([]list.Item, len(tasks))
-	for i, task := range tasks {
-		items[i] = components.TaskItem{
-			Task:        task.task,
-			ProjectName: task.projectName,
-		}
+func newTaskPickerModel(t theme.Theme, tasks []types.Task, projectNames []string, title string) taskPickerModel {
+	columns := []table.Column{
+		{Title: "", Width: 1},          // status icon
+		{Title: "", Width: 1},          // priority
+		{Title: "Title", Width: 30},
+		{Title: "Project", Width: 16},
+		{Title: "Due", Width: 12},
+		{Title: "Tags", Width: 14},
 	}
 
-	l := list.New(items, delegate, 0, 0)
-	l.Title = title
-	l.Styles.Title = t.Title
-	l.Styles.FilterPrompt = t.FilterPrompt
-	l.Styles.FilterCursor = lipgloss.NewStyle().Foreground(t.Palette.Primary)
-	l.SetShowStatusBar(true)
-	l.SetFilteringEnabled(true)
+	rows := make([]table.Row, len(tasks))
+	for i, tk := range tasks {
+		statusIcon := theme.IconPending
+		if tk.Status == task.StatusComplete {
+			statusIcon = theme.IconComplete
+		}
+
+		priorityFlag := " "
+		if tk.Priority >= task.PriorityLow {
+			priorityFlag = theme.IconPriority
+		}
+
+		projectName := ""
+		if i < len(projectNames) {
+			projectName = projectNames[i]
+		}
+
+		dueStr := ""
+		due := time.Time(tk.DueDate)
+		if !due.IsZero() {
+			dueStr = tk.DueDate.Humanize()
+		}
+
+		tagStr := ""
+		if len(tk.Tags) > 0 {
+			tagStr = strings.Join(tk.Tags, ", ")
+		}
+
+		rows[i] = table.Row{statusIcon, priorityFlag, tk.Title, projectName, dueStr, tagStr}
+	}
+
+	s := table.DefaultStyles()
+	s.Header = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(string(t.Palette.SubText))).
+		Bold(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color(string(t.Palette.Subtle))).
+		BorderBottom(true).
+		Padding(0, 1)
+	s.Selected = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(string(t.Palette.Primary))).
+		Bold(true).
+		Padding(0, 1)
+	s.Cell = lipgloss.NewStyle().
+		Padding(0, 1)
+
+	tbl := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithStyles(s),
+	)
 
 	detail := viewport.New(0, 0)
 
 	return taskPickerModel{
-		theme:  t,
-		list:   l,
-		detail: detail,
-		help:   components.NewHelpBar(t),
-		title:  title,
+		theme:        t,
+		table:        tbl,
+		detail:       detail,
+		help:         components.NewHelpBar(t),
+		tasks:        tasks,
+		projectNames: projectNames,
+		title:        title,
 	}
 }
 
@@ -87,16 +129,13 @@ func (m taskPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.detail.Width = m.width - 2
 			m.detail.Height = m.height - 2
 		} else {
-			m.list.SetSize(m.width, m.height-1) // -1 for help bar
+			m.table.SetWidth(m.width)
+			m.table.SetHeight(m.height - 3) // title + help
+			m.resizeColumns()
 		}
 		return m, nil
 
 	case tea.KeyMsg:
-		// Don't intercept keys when filtering
-		if m.list.SettingFilter() {
-			break
-		}
-
 		switch {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c"))):
 			m.result.Cancelled = true
@@ -105,7 +144,9 @@ func (m taskPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("esc"))):
 			if m.showDetail {
 				m.showDetail = false
-				m.list.SetSize(m.width, m.height-1)
+				m.table.SetWidth(m.width)
+				m.table.SetHeight(m.height - 3)
+				m.resizeColumns()
 				return m, nil
 			}
 			m.result.Cancelled = true
@@ -113,15 +154,16 @@ func (m taskPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
 			if m.showDetail {
-				// Second enter = confirm selection
 				return m, tea.Quit
 			}
-			// First enter = show detail
-			if item, ok := m.list.SelectedItem().(components.TaskItem); ok {
-				m.result.Task = item.Task
-				m.result.ProjectName = item.ProjectName
+			idx := m.table.Cursor()
+			if idx >= 0 && idx < len(m.tasks) {
+				m.result.Task = m.tasks[idx]
+				if idx < len(m.projectNames) {
+					m.result.ProjectName = m.projectNames[idx]
+				}
 				m.showDetail = true
-				content := components.RenderTaskDetail(m.theme, item.Task, item.ProjectName, m.width-4)
+				content := components.RenderTaskDetail(m.theme, m.tasks[idx], m.result.ProjectName, m.width-4)
 				m.detail.SetContent(content)
 				m.detail.GotoTop()
 				m.detail.Width = m.width - 2
@@ -138,8 +180,34 @@ func (m taskPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
+	m.table, cmd = m.table.Update(msg)
 	return m, cmd
+}
+
+func (m *taskPickerModel) resizeColumns() {
+	w := m.width
+	if w < 40 {
+		return
+	}
+	// Fixed widths for small columns
+	statusW := 3
+	priorityW := 3
+	projectW := 16
+	dueW := 12
+	tagsW := 14
+	// Title gets the rest
+	titleW := w - statusW - priorityW - projectW - dueW - tagsW - 12 // padding
+	if titleW < 10 {
+		titleW = 10
+	}
+	m.table.SetColumns([]table.Column{
+		{Title: "", Width: statusW},
+		{Title: "", Width: priorityW},
+		{Title: "Title", Width: titleW},
+		{Title: "Project", Width: projectW},
+		{Title: "Due", Width: dueW},
+		{Title: "Tags", Width: tagsW},
+	})
 }
 
 func (m taskPickerModel) View() string {
@@ -158,35 +226,28 @@ func (m taskPickerModel) View() string {
 		return lipgloss.NewStyle().Padding(0, 1).Render(m.detail.View()) + "\n" + help.View()
 	}
 
+	titleStyle := m.theme.Title.Padding(0, 0, 1, 1)
+	header := titleStyle.Render(m.title)
+
 	help := m.help
 	help.Width = m.width
 	help.Bindings = []components.KeyBinding{
 		{Key: "↑↓", Help: "navigate"},
 		{Key: "⏎", Help: "view details"},
-		{Key: "/", Help: "filter"},
 		{Key: "esc", Help: "cancel"},
 	}
-	return m.list.View() + "\n" + help.View()
+
+	return header + "\n" + m.table.View() + "\n" + help.View()
 }
 
 // RunTaskPicker launches a Bubble Tea task picker and returns the selected task.
-// showProject controls whether the project name is shown next to each task.
 func RunTaskPicker(tasks []types.Task, projectNames []string, title string) (*TaskPickerResult, error) {
 	if len(tasks) == 0 {
 		return nil, fmt.Errorf("no tasks found")
 	}
 
 	t := theme.Default()
-	items := make([]taskPickerItem, len(tasks))
-	for i, task := range tasks {
-		name := ""
-		if i < len(projectNames) {
-			name = projectNames[i]
-		}
-		items[i] = taskPickerItem{task: task, projectName: name}
-	}
-
-	model := newTaskPickerModel(t, items, title)
+	model := newTaskPickerModel(t, tasks, projectNames, title)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	final, err := p.Run()
 	if err != nil {

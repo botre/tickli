@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -21,35 +21,61 @@ type ProjectPickerResult struct {
 
 // projectPickerModel is the Bubble Tea model for the project picker.
 type projectPickerModel struct {
-	theme  theme.Theme
-	list   list.Model
-	help   components.HelpBar
-	result ProjectPickerResult
-	width  int
-	height int
+	theme    theme.Theme
+	table    table.Model
+	help     components.HelpBar
+	projects []types.Project
+	result   ProjectPickerResult
+	width    int
+	height   int
+	title    string
 }
 
 func newProjectPickerModel(t theme.Theme, projects []types.Project, title string) projectPickerModel {
-	delegate := components.NewProjectDelegate(t)
-	items := make([]list.Item, len(projects))
-	for i, p := range projects {
-		items[i] = components.ProjectItem{
-			Project: p,
-		}
+	columns := []table.Column{
+		{Title: "", Width: 1},         // color dot
+		{Title: "Name", Width: 30},
+		{Title: "View", Width: 10},
 	}
 
-	l := list.New(items, delegate, 0, 0)
-	l.Title = title
-	l.Styles.Title = t.Title
-	l.Styles.FilterPrompt = t.FilterPrompt
-	l.Styles.FilterCursor = lipgloss.NewStyle().Foreground(t.Palette.Primary)
-	l.SetShowStatusBar(true)
-	l.SetFilteringEnabled(true)
+	rows := make([]table.Row, len(projects))
+	for i, p := range projects {
+		colorDot := theme.IconProject
+		viewMode := ""
+		if p.ViewMode.String() != "" {
+			viewMode = p.ViewMode.String()
+		}
+		rows[i] = table.Row{colorDot, p.Name, viewMode}
+	}
+
+	s := table.DefaultStyles()
+	s.Header = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(string(t.Palette.SubText))).
+		Bold(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color(string(t.Palette.Subtle))).
+		BorderBottom(true).
+		Padding(0, 1)
+	s.Selected = lipgloss.NewStyle().
+		Foreground(lipgloss.Color(string(t.Palette.Primary))).
+		Bold(true).
+		Padding(0, 1)
+	s.Cell = lipgloss.NewStyle().
+		Padding(0, 1)
+
+	tbl := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(true),
+		table.WithStyles(s),
+	)
 
 	return projectPickerModel{
-		theme: t,
-		list:  l,
-		help:  components.NewHelpBar(t),
+		theme:    t,
+		table:    tbl,
+		help:     components.NewHelpBar(t),
+		projects: projects,
+		title:    title,
 	}
 }
 
@@ -62,30 +88,47 @@ func (m projectPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.list.SetSize(m.width, m.height-1)
+		m.table.SetWidth(m.width)
+		m.table.SetHeight(m.height - 3)
+		m.resizeColumns()
 		return m, nil
 
 	case tea.KeyMsg:
-		if m.list.SettingFilter() {
-			break
-		}
-
 		switch {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "ctrl+c", "esc"))):
 			m.result.Cancelled = true
 			return m, tea.Quit
 
 		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
-			if item, ok := m.list.SelectedItem().(components.ProjectItem); ok {
-				m.result.Project = item.Project
+			idx := m.table.Cursor()
+			if idx >= 0 && idx < len(m.projects) {
+				m.result.Project = m.projects[idx]
 				return m, tea.Quit
 			}
 		}
 	}
 
 	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
+	m.table, cmd = m.table.Update(msg)
 	return m, cmd
+}
+
+func (m *projectPickerModel) resizeColumns() {
+	w := m.width
+	if w < 20 {
+		return
+	}
+	dotW := 3
+	viewW := 10
+	nameW := w - dotW - viewW - 8 // padding
+	if nameW < 10 {
+		nameW = 10
+	}
+	m.table.SetColumns([]table.Column{
+		{Title: "", Width: dotW},
+		{Title: "Name", Width: nameW},
+		{Title: "View", Width: viewW},
+	})
 }
 
 func (m projectPickerModel) View() string {
@@ -93,15 +136,18 @@ func (m projectPickerModel) View() string {
 		return ""
 	}
 
+	titleStyle := m.theme.Title.Padding(0, 0, 1, 1)
+	header := titleStyle.Render(m.title)
+
 	help := m.help
 	help.Width = m.width
 	help.Bindings = []components.KeyBinding{
 		{Key: "↑↓", Help: "navigate"},
 		{Key: "⏎", Help: "select"},
-		{Key: "/", Help: "filter"},
 		{Key: "esc", Help: "cancel"},
 	}
-	return m.list.View() + "\n" + help.View()
+
+	return header + "\n" + m.table.View() + "\n" + help.View()
 }
 
 // RunProjectPicker launches a Bubble Tea project picker and returns the selected project.
