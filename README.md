@@ -8,6 +8,17 @@ A beautiful command line interface for TickTick task management, built with [Cha
 go install github.com/botre/tickli@latest
 ```
 
+## Updating
+
+```bash
+tickli update
+```
+
+`tickli update` re-runs `go install` against the latest release, so the Go
+toolchain must be installed. tickli also checks for new versions in the
+background and prints a notice when one is available; set
+`TICKLI_NO_UPDATE_CHECK=1` to disable that check.
+
 ## Quick Start
 
 ### 1. Create a TickTick App

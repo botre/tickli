@@ -7,13 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gookit/color"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/botre/tickli/cmd/project"
 	"github.com/botre/tickli/cmd/task"
 	"github.com/botre/tickli/cmd/view"
 	cliErrors "github.com/botre/tickli/internal/errors"
+	"github.com/botre/tickli/internal/update"
+	"github.com/gookit/color"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -45,7 +46,6 @@ func ColorDisabled() bool {
 	return false
 }
 
-
 func NewTickliCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tickli",
@@ -62,6 +62,7 @@ Complete documentation is available at https://github.com/botre/tickli`,
 		NewInitCommand(),
 		NewResetCommand(),
 		NewVersionCommand(),
+		NewUpdateCommand(),
 		task.NewTaskCommand(),
 		project.NewProjectCommand(),
 		view.NewTodayCommand(),
@@ -72,6 +73,32 @@ Complete documentation is available at https://github.com/botre/tickli`,
 	)
 
 	return cmd
+}
+
+// startUpdateNotifier kicks off a background check for a newer tickli release
+// and returns a function that, once the command has finished, prints a notice
+// to stderr when an update is available. It is a no-op for non-interactive or
+// machine-readable output and for commands where a notice would be noise.
+func startUpdateNotifier(root *cobra.Command) func() {
+	if JSONOutput || QuietOutput {
+		return func() {}
+	}
+	if !term.IsTerminal(int(os.Stderr.Fd())) {
+		return func() {}
+	}
+	if _, disabled := os.LookupEnv("TICKLI_NO_UPDATE_CHECK"); disabled {
+		return func() {}
+	}
+	if target, _, err := root.Find(os.Args[1:]); err == nil && target != nil {
+		switch target.Name() {
+		case "update", "version", "completion", "help",
+			cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
+			return func() {}
+		}
+	}
+
+	notice := update.StartCheck(CurrentVersion())
+	return func() { notice(os.Stderr) }
 }
 
 func Execute() {
@@ -97,7 +124,15 @@ func Execute() {
 		},
 	})
 
-	if err := cmd.Execute(); err != nil {
+	// Check for a newer release in the background while the command runs.
+	notify := startUpdateNotifier(cmd)
+
+	err := cmd.Execute()
+
+	// Print the update notice (if any) once the command's own output is done.
+	notify()
+
+	if err != nil {
 		msg := err.Error()
 		code := ExitError
 		switch {
