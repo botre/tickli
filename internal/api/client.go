@@ -40,6 +40,11 @@ func apiErrorMessage(body string) string {
 
 type Client struct {
 	http *resty.Client
+
+	// inboxID caches the real inbox project ID once resolved (see resolveInboxID).
+	inboxID string
+	// projects caches the project list for the lifetime of this client.
+	projects []types.Project
 }
 
 func NewClient(token string) *Client {
@@ -83,6 +88,12 @@ func GetAccessToken(clientID, clientSecret, code string) (string, error) {
 }
 
 func (c *Client) ListProjects() ([]types.Project, error) {
+	// Served from a per-client cache: a single CLI invocation often needs the
+	// project list more than once (name resolution, task lookup, views).
+	if c.projects != nil {
+		return c.projects, nil
+	}
+
 	var projects []types.Project
 	resp, err := c.http.R().
 		SetResult(&projects).
@@ -99,7 +110,8 @@ func (c *Client) ListProjects() ([]types.Project, error) {
 	// Adds the default InboxProject - not appears by default
 	projects = append(projects, types.InboxProject)
 
-	return projects, nil
+	c.projects = projects
+	return c.projects, nil
 }
 
 // ResolveProject finds a project by ID or name.
@@ -299,19 +311,33 @@ func (c *Client) getTaskFromProject(projectID, taskID string) (*types.Task, erro
 	return &task, nil
 }
 
-// GetTask fetches a task by ID, searching across all projects if needed.
+// GetTask fetches a task by ID.
+//
+// It locates the task's project with a single filter call, then fetches the
+// authoritative task from that project. This avoids the previous O(N) scan
+// that issued one request per project. The filter endpoint omits some tasks
+// (notably completed ones), so it falls back to scanning every project.
 func (c *Client) GetTask(taskID string) (*types.Task, error) {
-	// Try inbox first (most common case)
+	tasks, err := c.FilterTasks(TaskFilter{})
+	if err != nil {
+		return nil, errors.Wrap(err, "filtering tasks for task lookup")
+	}
+	for i := range tasks {
+		if tasks[i].ID == taskID {
+			return c.getTaskFromProject(tasks[i].ProjectID, taskID)
+		}
+	}
+
+	// Fallback: the filter endpoint does not return every task (e.g. completed
+	// ones), so scan the inbox and each project directly as a last resort.
 	if t, err := c.getTaskFromProject(types.InboxProject.ID, taskID); err == nil {
 		return t, nil
 	}
 
-	// Search all projects
 	projects, err := c.ListProjects()
 	if err != nil {
 		return nil, errors.Wrap(err, "listing projects for task lookup")
 	}
-
 	for _, p := range projects {
 		if p.ID == types.InboxProject.ID {
 			continue // already tried
@@ -459,7 +485,12 @@ func (c *Client) UpdateTask(task *types.Task) (*types.Task, error) {
 // resolveInboxID returns the real inbox project ID.
 // The TickTick API uses "inbox" as an alias for some endpoints but not all.
 // This method discovers the real ID by creating and deleting a temporary task.
+// The result is cached on the client so the probe runs at most once.
 func (c *Client) resolveInboxID() (string, error) {
+	if c.inboxID != "" {
+		return c.inboxID, nil
+	}
+
 	tmp := &types.Task{
 		ProjectID: types.InboxProject.ID,
 		Title:     "_tickli_inbox_probe",
@@ -468,10 +499,10 @@ func (c *Client) resolveInboxID() (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "creating inbox probe task")
 	}
-	realID := created.ProjectID
+	c.inboxID = created.ProjectID
 	// Clean up
 	_ = c.DeleteTask(created.ID)
-	return realID, nil
+	return c.inboxID, nil
 }
 
 // MoveTask moves a task to a different project using the dedicated move endpoint.
@@ -528,6 +559,7 @@ func (c *Client) UpdateProject(project types.Project) (types.Project, error) {
 		return types.NullProject, fmt.Errorf("failed to update project: %s", apiErrorMessage(resp.String()))
 	}
 
+	c.projects = nil // invalidate cached project list
 	return project, nil
 }
 
@@ -586,6 +618,7 @@ func (c *Client) CreateProject(project *types.Project) (*types.Project, error) {
 		return nil, fmt.Errorf("failed to create project: %s", apiErrorMessage(resp.String()))
 	}
 
+	c.projects = nil // invalidate cached project list
 	return project, nil
 }
 
@@ -600,5 +633,6 @@ func (c *Client) DeleteProject(projectID string) error {
 		return fmt.Errorf("failed to delete project: %s", apiErrorMessage(resp.String()))
 	}
 
+	c.projects = nil // invalidate cached project list
 	return nil
 }

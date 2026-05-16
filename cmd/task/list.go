@@ -44,9 +44,9 @@ func filterTasks(tasks []types.Task, opts *listOptions) []types.Task {
 
 	// Filter by completion status
 	if !opts.all {
-		//	tasks = Filter(tasks, func(t types.Task) bool {
-		//		return !t.
-		//	})
+		tasks = Filter(tasks, func(t types.Task) bool {
+			return t.Status != task.StatusComplete
+		})
 	}
 
 	if opts.dueDate != "" {
