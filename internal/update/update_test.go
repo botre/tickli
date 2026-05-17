@@ -1,9 +1,15 @@
 package update
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/adrg/xdg"
 )
 
 func TestParseVersion(t *testing.T) {
@@ -77,6 +83,61 @@ func TestShouldCheck(t *testing.T) {
 	if shouldCheck("v0.0.1") {
 		t.Errorf("shouldCheck with %s set = true, want false", disableEnv)
 	}
+}
+
+// primeCache points the update-check cache at a temp dir and writes a fresh
+// entry recording latest as the newest published version.
+func primeCache(t *testing.T, latest string) {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", dir)
+	xdg.Reload()
+	t.Cleanup(xdg.Reload)
+
+	data, err := json.Marshal(&cache{CheckedAt: time.Now(), LatestVersion: latest})
+	if err != nil {
+		t.Fatalf("marshal cache: %v", err)
+	}
+	path := filepath.Join(dir, "tickli", "update-check.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatalf("mkdir cache dir: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		t.Fatalf("write cache: %v", err)
+	}
+}
+
+func TestCheckVersion(t *testing.T) {
+	t.Run("outdated", func(t *testing.T) {
+		primeCache(t, "v0.0.20")
+		status, latest := CheckVersion("v0.0.14")
+		if status != StatusOutdated || latest != "v0.0.20" {
+			t.Errorf("CheckVersion = %v, %q; want StatusOutdated, v0.0.20", status, latest)
+		}
+	})
+
+	t.Run("up to date", func(t *testing.T) {
+		primeCache(t, "v0.0.14")
+		status, latest := CheckVersion("v0.0.14")
+		if status != StatusUpToDate || latest != "v0.0.14" {
+			t.Errorf("CheckVersion = %v, %q; want StatusUpToDate, v0.0.14", status, latest)
+		}
+	})
+
+	t.Run("dev build", func(t *testing.T) {
+		primeCache(t, "v0.0.14")
+		if status, _ := CheckVersion("dev"); status != StatusUnknown {
+			t.Errorf("CheckVersion(dev) = %v, want StatusUnknown", status)
+		}
+	})
+
+	t.Run("check disabled", func(t *testing.T) {
+		primeCache(t, "v0.0.20")
+		t.Setenv(disableEnv, "1")
+		if status, _ := CheckVersion("v0.0.14"); status != StatusUnknown {
+			t.Errorf("CheckVersion with %s set = %v, want StatusUnknown", disableEnv, status)
+		}
+	})
 }
 
 func TestFetchLatest(t *testing.T) {
