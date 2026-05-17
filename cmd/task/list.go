@@ -174,12 +174,23 @@ tags, and due date. Results are displayed in an interactive selector.`,
 	cmd.Flags().VarP(&opts.priority, "priority", "p", "Only show tasks with this priority level or higher")
 	_ = cmd.RegisterFlagCompletionFunc("priority", task.PriorityCompletionFunc)
 	cmd.Flags().StringVar(&opts.dueDate, "due-within", "", "Filter by due date window: today, tomorrow, this-week, overdue")
+	_ = cmd.RegisterFlagCompletionFunc("due-within", dueWithinCompletionFunc)
 	cmd.Flags().BoolVarP(&opts.verbose, "verbose", "v", false, "Show more details for each task in the list")
 	cmd.Flags().VarP(&opts.output, "output", "o", "Display format: simple (human-readable) or json (machine-readable)")
 	_ = cmd.RegisterFlagCompletionFunc("output", types.OutputFormatCompletionFunc)
 
 	return cmd
 }
+
+// dueWithinCompletionFunc completes the fixed set of --due-within filter
+// windows. Keep it in sync with the values accepted in list.go.
+var dueWithinCompletionFunc = cobra.FixedCompletions([]cobra.Completion{
+	cobra.CompletionWithDesc("today", "Due today"),
+	cobra.CompletionWithDesc("tomorrow", "Due tomorrow"),
+	cobra.CompletionWithDesc("this-week", "Due within the next 7 days"),
+	cobra.CompletionWithDesc("overdue", "Past their due date"),
+}, cobra.ShellCompDirectiveNoFileComp)
+
 func Filter(tasks []types.Task, predicate func(task types.Task) bool) []types.Task {
 	var result []types.Task
 	for _, t := range tasks {
