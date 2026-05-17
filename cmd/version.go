@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"runtime/debug"
+
+	"github.com/botre/tickli/internal/update"
+	"github.com/spf13/cobra"
 )
 
 // Version is set at build time using -ldflags
@@ -30,7 +32,16 @@ func NewVersionCommand() *cobra.Command {
 This command shows the version number, which can be set at build time
 or automatically detected from build information.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("tickli version", CurrentVersion())
+			out := cmd.OutOrStdout()
+			current := CurrentVersion()
+			fmt.Fprintln(out, "tickli version", current)
+
+			switch status, latest := update.CheckVersion(current); status {
+			case update.StatusUpToDate:
+				fmt.Fprintln(out, "You're on the latest version.")
+			case update.StatusOutdated:
+				fmt.Fprintf(out, "A new version is available: %s. Run 'tickli update' to upgrade.\n", latest)
+			}
 		},
 	}
 	return cmd

@@ -68,6 +68,37 @@ func StartCheck(current string) func(w io.Writer) {
 	}
 }
 
+// VersionStatus reports how the running version compares to the latest release.
+type VersionStatus int
+
+const (
+	// StatusUnknown means the comparison could not be made: a dev build, the
+	// check is disabled, or the latest version could not be determined.
+	StatusUnknown VersionStatus = iota
+	// StatusUpToDate means the running version is the latest release.
+	StatusUpToDate
+	// StatusOutdated means a newer release is available.
+	StatusOutdated
+)
+
+// CheckVersion compares current against the latest published release. It
+// reuses the on-disk cache the background notifier primes and only hits the
+// network when that cache is missing or stale. latest holds the newest known
+// version when status is StatusUpToDate or StatusOutdated.
+func CheckVersion(current string) (status VersionStatus, latest string) {
+	if !shouldCheck(current) {
+		return StatusUnknown, ""
+	}
+	latest = latestVersion()
+	if latest == "" {
+		return StatusUnknown, ""
+	}
+	if compareVersions(latest, current) > 0 {
+		return StatusOutdated, latest
+	}
+	return StatusUpToDate, latest
+}
+
 // Run upgrades tickli in place by re-running `go install`.
 func Run(stdout, stderr io.Writer) error {
 	goBin, err := exec.LookPath("go")
@@ -103,25 +134,32 @@ func shouldCheck(current string) bool {
 }
 
 // newerVersion returns the latest version if it is newer than current,
-// otherwise an empty string. It serves a fresh result from the on-disk cache
-// and only hits the network when the cache is missing or stale.
+// otherwise an empty string.
 func newerVersion(current string) string {
+	return pickNewer(latestVersion(), current)
+}
+
+// latestVersion returns the most recent published release of tickli. It serves
+// a fresh result from the on-disk cache and only hits the network when the
+// cache is missing or stale. It returns "" only when the version cannot be
+// determined at all (no network and no cache).
+func latestVersion() string {
 	c, _ := loadCache()
 	if c != nil && time.Since(c.CheckedAt) < checkTTL {
-		return pickNewer(c.LatestVersion, current)
+		return c.LatestVersion
 	}
 
 	latest, err := fetchLatest(proxyURL)
 	if err != nil {
 		// Network failed: fall back to a stale cache rather than nothing.
 		if c != nil {
-			return pickNewer(c.LatestVersion, current)
+			return c.LatestVersion
 		}
 		return ""
 	}
 
 	_ = saveCache(&cache{CheckedAt: time.Now(), LatestVersion: latest})
-	return pickNewer(latest, current)
+	return latest
 }
 
 // pickNewer returns latest when it is strictly newer than current.
